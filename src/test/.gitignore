@@ -1,0 +1,77 @@
+# Test Environment
+# Local test environment configurations and secrets
+.env.test.local
+*.test.env
+.env.test
+test.config.js
+test.config.json
+
+# Test Results
+# Generated test execution outputs and reports
+test-results/
+reports/
+junit.xml
+test-output/
+*.log
+*.test.log
+
+# Test Coverage
+# Code coverage data and analysis reports
+coverage/
+.coverage
+coverage.xml
+coverage-final.json
+coverage-summary.json
+.nyc_output/
+
+# Test Cache
+# Framework-specific caches and optimizations
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+node_modules/
+.jest/
+.mocha/
+
+# Test Data
+# Generated and temporary test data
+temp/
+*.tmp
+*.temp
+fixtures/**/*.generated.*
+test-data/
+mock-data/
+
+# IDE & Editor
+# Editor-specific settings and workspace files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Framework-specific test artifacts
+# Jest
+jest.config.local.js
+jest-junit.xml
+
+# Mocha
+.mocharc.local.json
+mochawesome-report/
+
+# PyTest
+pytest.ini.local
+.pytest_configuration/
+
+# Test Dependencies
+package-lock.json
+yarn.lock
+poetry.lock
+
+# Temporary Directories
+.temp/
+.tmp/
+.cache/
