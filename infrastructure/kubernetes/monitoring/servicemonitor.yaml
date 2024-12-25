@@ -1,0 +1,132 @@
+# ServiceMonitor configurations for Knowledge Aggregation System v1.0
+# Prometheus Operator version: v0.68.0
+# Purpose: Define service discovery and metrics collection for core services
+
+---
+# API Gateway Service Monitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-gateway
+  namespace: monitoring
+  labels:
+    app: api-gateway
+    release: prometheus
+    monitoring: enabled
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  namespaceSelector:
+    matchNames:
+      - default
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: false
+        serverName: api-gateway-metrics
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+          action: replace
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+          action: replace
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: '^(http_requests_total|http_request_duration_seconds|http_response_size_bytes).*'
+          action: keep
+
+---
+# Content Discovery Service Monitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: content-discovery
+  namespace: monitoring
+  labels:
+    app: content-discovery
+    release: prometheus
+    monitoring: enabled
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: content-discovery
+  namespaceSelector:
+    matchNames:
+      - default
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: false
+        serverName: content-discovery-metrics
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+          action: replace
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+          action: replace
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: '^(content_discovery_requests|content_processing_duration_seconds|content_quality_score).*'
+          action: keep
+
+---
+# Vector Service Monitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vector-service
+  namespace: monitoring
+  labels:
+    app: vector-service
+    release: prometheus
+    monitoring: enabled
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: vector-service
+  namespaceSelector:
+    matchNames:
+      - default
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: false
+        serverName: vector-service-metrics
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+          action: replace
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+          action: replace
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: '^(vector_processing_duration|vector_cache_hits|vector_embedding_size).*'
+          action: keep
