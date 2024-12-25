@@ -1,0 +1,135 @@
+# Kustomization configuration for staging environment
+# Version: 1.0
+# Dependencies: Kubernetes v1.28+, Kustomize v5.0.1
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base resources to be customized
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/configmap.yaml
+  - ../../base/monitoring.yaml
+  - ../../apps/api-gateway.yaml
+  - ../../apps/content-discovery.yaml
+  - ../../apps/vector-service.yaml
+
+# Target namespace for all resources
+namespace: knowledge-system-staging
+
+# Common labels for all resources
+commonLabels:
+  environment: staging
+  app.kubernetes.io/environment: staging
+  monitoring: enabled
+
+# Patches to customize base resources
+patches:
+  # Set replica count for all deployments
+  - target:
+      kind: Deployment
+      name: ".*"
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  # Configure blue/green deployment strategy
+  - target:
+      kind: Deployment
+      name: ".*"
+    patch: |
+      - op: replace
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 0
+
+  # Configure resource limits for staging
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "0.5"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+
+  # Configure monitoring settings
+  - target:
+      kind: ServiceMonitor
+      name: ".*"
+    patch: |
+      - op: replace
+        path: /spec/endpoints/0/interval
+        value: 30s
+
+# ConfigMap generator for environment-specific settings
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=info
+      - ENABLE_MONITORING=true
+      - RATE_LIMIT=1000
+      - SESSION_TIMEOUT=1800
+      - ENABLE_BLUE_GREEN=true
+      - HEALTH_CHECK_INTERVAL=30
+      - API_RATE_LIMIT=1000
+      - API_RATE_WINDOW=3600
+      - PROMETHEUS_RETENTION=7d
+      - METRICS_SCRAPE_INTERVAL=30s
+
+# Image tag customization for staging
+images:
+  - name: api-gateway
+    newTag: staging
+  - name: content-discovery
+    newTag: staging
+  - name: vector-service
+    newTag: staging
+
+# Resource quota for staging namespace
+quotas:
+  - name: staging-quota
+    spec:
+      hard:
+        requests.cpu: "8"
+        requests.memory: "16Gi"
+        limits.cpu: "16"
+        limits.memory: "32Gi"
+        pods: "30"
+
+# Configure network policies for staging
+patchesStrategicMerge:
+  - |-
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: staging-network-policy
+      namespace: knowledge-system-staging
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  environment: staging
+      egress:
+        - to:
+            - namespaceSelector: {}
+          ports:
+            - protocol: TCP
+              port: 443
+            - protocol: TCP
+              port: 80
