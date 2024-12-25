@@ -1,0 +1,71 @@
+# Base ConfigMap definitions for knowledge aggregation system
+# Version: 1.0
+# Dependencies: Kubernetes v1.28+
+
+---
+# Application configuration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    description: "Main application configuration for knowledge aggregation services"
+    lastUpdated: "2023-11-01"
+data:
+  # API Gateway Configuration
+  API_GATEWAY_PORT: "3000"
+  API_RATE_LIMIT: "1000"  # Requests per window
+  API_RATE_WINDOW: "3600" # Rate limit window in seconds
+  
+  # Service Ports
+  CONTENT_DISCOVERY_PORT: "8000"
+  VECTOR_SERVICE_PORT: "50051"  # gRPC port
+  KNOWLEDGE_SERVICE_PORT: "8001"
+  OUTPUT_SERVICE_PORT: "3001"
+  
+  # Database Configurations
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  MONGODB_URI: "mongodb://mongodb:27017/knowledge"
+  NEO4J_URI: "bolt://neo4j:7687"
+  
+  # External Service Configurations
+  PINECONE_API_VERSION: "v1"
+
+---
+# Monitoring configuration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    description: "Monitoring and observability configuration"
+    lastUpdated: "2023-11-01"
+data:
+  # Prometheus Configuration
+  PROMETHEUS_RETENTION: "15d"
+  METRICS_PATH: "/metrics"
+  METRICS_PORT: "9090"
+  
+  # Grafana Configuration
+  GRAFANA_PORT: "3000"
+  
+  # Alert Manager Configuration
+  ALERTMANAGER_PORT: "9093"
+  
+  # Logging Configuration
+  LOG_FORMAT: "json"
+  LOG_LEVEL: "info"
+  
+  # Environment Configuration
+  ENVIRONMENT: "${ENVIRONMENT}"  # Will be replaced by Kustomize
