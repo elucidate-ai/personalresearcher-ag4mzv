@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package knowledge;
+
+// Import Google's well-known type definitions
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Package options for different languages
+option go_package = "./knowledge";
+option java_package = "com.knowledge.graph";
+option java_multiple_files = true;
+option optimize_for = SPEED;
+
+// Node represents a vertex in the knowledge graph with enhanced metadata
+message Node {
+    string id = 1;                                    // Unique identifier for the node
+    string topic_id = 2;                             // Associated topic identifier
+    string label = 3;                                // Human-readable label
+    map<string, string> properties = 4;              // Flexible key-value properties
+    float importance_score = 5;                      // Node importance in graph
+    float relevance_score = 6;                       // Relevance to topic
+    repeated string tags = 7;                        // Categorization tags
+    google.protobuf.Timestamp created_at = 8;        // Creation timestamp
+    google.protobuf.Timestamp updated_at = 9;        // Last update timestamp
+    string version = 10;                             // Version control
+}
+
+// Relationship represents an edge between nodes with metadata
+message Relationship {
+    string id = 1;                                   // Unique identifier for the relationship
+    string source_node_id = 2;                       // Source node identifier
+    string target_node_id = 3;                       // Target node identifier
+    string type = 4;                                 // Relationship type
+    float weight = 5;                                // Edge weight
+    float confidence_score = 6;                      // Confidence in relationship
+    map<string, string> metadata = 7;                // Additional metadata
+    google.protobuf.Timestamp created_at = 8;        // Creation timestamp
+    google.protobuf.Timestamp updated_at = 9;        // Last update timestamp
+    string version = 10;                             // Version control
+}
+
+// Graph represents the complete knowledge graph structure
+message Graph {
+    string id = 1;                                   // Unique identifier for the graph
+    string topic_id = 2;                             // Associated topic identifier
+    repeated Node nodes = 3;                         // Collection of nodes
+    repeated Relationship relationships = 4;          // Collection of relationships
+    map<string, string> metadata = 5;                // Graph metadata
+    float graph_density = 6;                         // Graph density metric
+    float clustering_coefficient = 7;                 // Clustering coefficient
+    map<string, float> centrality_metrics = 8;       // Various centrality measures
+    google.protobuf.Timestamp created_at = 9;        // Creation timestamp
+    google.protobuf.Timestamp updated_at = 10;       // Last update timestamp
+    string version = 11;                             // Version control
+    string status = 12;                              // Graph status
+}
+
+// Request/Response messages for service methods
+message CreateGraphRequest {
+    string topic_id = 1;
+    map<string, string> metadata = 2;
+}
+
+message UpdateGraphRequest {
+    string graph_id = 1;
+    Graph graph = 2;
+}
+
+message GetGraphRequest {
+    string graph_id = 1;
+}
+
+message DeleteGraphRequest {
+    string graph_id = 1;
+}
+
+message AnalyzeGraphRequest {
+    string graph_id = 1;
+    repeated string metrics = 2;
+}
+
+message AnalyzeGraphResponse {
+    string graph_id = 1;
+    map<string, float> metrics = 2;
+    string analysis_version = 3;
+}
+
+message GraphUpdateEvent {
+    string graph_id = 1;
+    oneof update {
+        Node node_update = 2;
+        Relationship relationship_update = 3;
+    }
+    string update_type = 4;  // "CREATE", "UPDATE", "DELETE"
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+message BatchNodeUpdate {
+    repeated Node nodes = 1;
+    string update_type = 2;  // "CREATE", "UPDATE", "DELETE"
+}
+
+message BatchRelationshipUpdate {
+    repeated Relationship relationships = 1;
+    string update_type = 2;  // "CREATE", "UPDATE", "DELETE"
+}
+
+message GraphMetricsRequest {
+    string graph_id = 1;
+    repeated string metric_names = 2;
+}
+
+message GraphMetricsResponse {
+    string graph_id = 1;
+    map<string, float> metrics = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message ValidateGraphRequest {
+    string graph_id = 1;
+    repeated string validation_rules = 2;
+}
+
+message ValidateGraphResponse {
+    string graph_id = 1;
+    bool is_valid = 2;
+    repeated string validation_errors = 3;
+    google.protobuf.Timestamp timestamp = 4;
+}
+
+// KnowledgeService provides comprehensive graph management capabilities
+service KnowledgeService {
+    // Core graph operations
+    rpc CreateGraph(CreateGraphRequest) returns (Graph);
+    rpc GetGraph(GetGraphRequest) returns (Graph);
+    rpc UpdateGraph(UpdateGraphRequest) returns (Graph);
+    rpc DeleteGraph(DeleteGraphRequest) returns (google.protobuf.Empty);
+
+    // Advanced graph analysis
+    rpc AnalyzeGraph(AnalyzeGraphRequest) returns (AnalyzeGraphResponse);
+    
+    // Real-time updates
+    rpc StreamGraphUpdates(GetGraphRequest) returns (stream GraphUpdateEvent);
+    
+    // Batch operations
+    rpc BatchUpdateNodes(BatchNodeUpdate) returns (google.protobuf.Empty);
+    rpc BatchUpdateRelationships(BatchRelationshipUpdate) returns (google.protobuf.Empty);
+    
+    // Monitoring and metrics
+    rpc GetGraphMetrics(GraphMetricsRequest) returns (GraphMetricsResponse);
+    
+    // Validation
+    rpc ValidateGraph(ValidateGraphRequest) returns (ValidateGraphResponse);
+}
