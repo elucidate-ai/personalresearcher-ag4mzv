@@ -1,0 +1,159 @@
+# Pod Security Policy Configuration v1beta1
+# Purpose: Define comprehensive security constraints for pods in the knowledge aggregation system
+# Dependencies: k8s.io/api/policy/v1beta1
+# Version: policy/v1beta1
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: restricted-psp
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: security
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: "runtime/default"
+    apparmor.security.beta.kubernetes.io/defaultProfileName: "runtime/default"
+    kubernetes.io/description: "Restricted PSP enforcing comprehensive security controls for general workloads"
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - configMap
+    - emptyDir
+    - projected
+    - secret
+    - downwardAPI
+    - persistentVolumeClaim
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+    ranges:
+      - min: 1000
+        max: 65535
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 3000
+        max: 65535
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 3000
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 3000
+        max: 65535
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault
+
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: privileged-psp
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: security
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: "runtime/default"
+    apparmor.security.beta.kubernetes.io/defaultProfileName: "runtime/default"
+    kubernetes.io/description: "Privileged PSP with controlled elevated permissions for system workloads"
+spec:
+  privileged: true
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+    - '*'
+  volumes:
+    - '*'
+  hostNetwork: true
+  hostIPC: true
+  hostPID: true
+  runAsUser:
+    rule: RunAsAny
+  runAsGroup:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  fsGroup:
+    rule: RunAsAny
+  readOnlyRootFilesystem: false
+
+---
+# RBAC binding for PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: psp-restricted-role
+  labels:
+    app.kubernetes.io/component: security
+rules:
+  - apiGroups: ['policy']
+    resources: ['podsecuritypolicies']
+    verbs: ['use']
+    resourceNames: ['restricted-psp']
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: psp-privileged-role
+  labels:
+    app.kubernetes.io/component: security
+rules:
+  - apiGroups: ['policy']
+    resources: ['podsecuritypolicies']
+    verbs: ['use']
+    resourceNames: ['privileged-psp']
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp-restricted-binding
+  namespace: knowledge-system
+subjects:
+  - kind: ServiceAccount
+    name: api-gateway-sa
+    namespace: knowledge-system
+  - kind: ServiceAccount
+    name: content-discovery-sa
+    namespace: knowledge-system
+  - kind: ServiceAccount
+    name: vector-service-sa
+    namespace: knowledge-system
+roleRef:
+  kind: ClusterRole
+  name: psp-restricted-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp-privileged-binding
+  namespace: knowledge-system
+subjects:
+  - kind: ServiceAccount
+    name: system-sa
+    namespace: knowledge-system
+roleRef:
+  kind: ClusterRole
+  name: psp-privileged-role
+  apiGroup: rbac.authorization.k8s.io
