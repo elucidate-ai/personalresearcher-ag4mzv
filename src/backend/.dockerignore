@@ -1,0 +1,80 @@
+# Version Control
+**/.git
+**/.gitignore
+
+# Environment and Secrets - Critical Security
+**/.env*
+**/*.key
+**/*.pem
+**/.npmrc
+
+# Dependencies and Package Management
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.python-version
+
+# Build and Distribution
+**/dist
+**/build
+**/*.egg-info
+
+# Test and Coverage
+**/tests
+**/coverage
+**/.pytest_cache
+**/.coverage
+
+# Docker and Deployment
+**/docker-compose*.yml
+**/Dockerfile*
+**/.docker
+
+# Development Tools and IDE
+**/.vscode
+**/.idea
+**/.editorconfig
+
+# Documentation
+**/*.md
+**/README*
+**/docs
+**/CHANGELOG*
+
+# Logs and Runtime Data
+**/logs
+**/*.log
+**/log/
+**/*.pid
+
+# Cache and Temporary Files
+**/.cache
+**/tmp
+**/.tmp
+**/*.tmp
+
+# Media and Large Files
+**/*.mp4
+**/*.mov
+**/*.wav
+**/*.zip
+**/*.tar.gz
+
+# Configuration Files
+**/.babelrc
+**/.eslintrc*
+**/.prettierrc*
+**/jest.config.*
+**/pytest.ini
+**/tox.ini
+
+# Local Development
+**/local/
+**/dev/
+**/.local
+
+# Miscellaneous
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+**/*~
