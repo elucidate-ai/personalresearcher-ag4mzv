@@ -1,0 +1,174 @@
+# Kubernetes RBAC Configuration v1
+# Purpose: Define service accounts, roles, and role bindings with enhanced security controls
+# Dependencies: k8s.io/api/rbac/v1, k8s.io/api/core/v1
+
+---
+# API Gateway Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-gateway-sa
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: api-gateway
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/api-gateway-role"
+    security.kubernetes.io/pod-security-policy: restricted
+    audit.kubernetes.io/level: "RequestResponse"
+
+---
+# Content Discovery Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: content-discovery-sa
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: content-discovery
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/content-discovery-role"
+    security.kubernetes.io/pod-security-policy: restricted
+    storage.kubernetes.io/access-mode: "ReadWrite"
+
+---
+# Vector Service Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vector-service-sa
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: vector-service
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/vector-service-role"
+    security.kubernetes.io/pod-security-policy: restricted
+    nvidia.com/gpu-access: "enabled"
+
+---
+# API Gateway Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: api-gateway-role
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: api-gateway
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["get", "create"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Content Discovery Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: content-discovery-role
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: content-discovery
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "create"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "watch"]
+
+---
+# Vector Service Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vector-service-role
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: vector-service
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "create"]
+- apiGroups: ["nvidia.com"]
+  resources: ["gpus"]
+  verbs: ["get", "list", "create"]
+
+---
+# API Gateway Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-gateway-rolebinding
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: api-gateway
+subjects:
+- kind: ServiceAccount
+  name: api-gateway-sa
+  namespace: knowledge-system
+roleRef:
+  kind: Role
+  name: api-gateway-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Content Discovery Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: content-discovery-rolebinding
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: content-discovery
+subjects:
+- kind: ServiceAccount
+  name: content-discovery-sa
+  namespace: knowledge-system
+roleRef:
+  kind: Role
+  name: content-discovery-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Vector Service Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vector-service-rolebinding
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: vector-service
+subjects:
+- kind: ServiceAccount
+  name: vector-service-sa
+  namespace: knowledge-system
+roleRef:
+  kind: Role
+  name: vector-service-role
+  apiGroup: rbac.authorization.k8s.io
