@@ -1,0 +1,189 @@
+version: '3.8'  # docker-compose version: 3.8
+
+services:
+  # API Gateway Service
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile.api-gateway
+      target: development
+    ports:
+      - "3000:3000"  # Main API port
+      - "9229:9229"  # Node.js debug port
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DEBUG=api-gateway:*
+      - REDIS_URI=redis://redis:6379
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      - redis
+    command: npm run dev:debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Content Discovery Service
+  content-discovery:
+    build:
+      context: ./content-discovery
+      dockerfile: Dockerfile.content-discovery
+      target: development
+    ports:
+      - "8000:8000"  # FastAPI port
+      - "5678:5678"  # Python debug port
+    volumes:
+      - ./content-discovery:/app
+      - ./content-discovery/data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - MONGODB_URI=mongodb://mongodb:27017/content_discovery
+      - DEBUG=1
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      - mongodb
+    command: python -m debugpy --listen 0.0.0.0:5678 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  # Vector Service
+  vector-service:
+    build:
+      context: ./vector-service
+      dockerfile: Dockerfile.vector-service
+      target: development
+    ports:
+      - "50051:50051"  # gRPC port
+      - "50052:50052"  # Health check port
+      - "50053:50053"  # Metrics port
+      - "5679:5679"   # Python debug port
+    volumes:
+      - ./vector-service:/app
+      - ./vector-service/models:/app/models
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URI=redis://redis:6379
+      - DEBUG=1
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+    depends_on:
+      - redis
+    command: python -m debugpy --listen 0.0.0.0:5679 main.py
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:50051'); stub = health_pb2_grpc.HealthStub(channel); stub.Check(health_pb2.HealthCheckRequest())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+
+  # MongoDB Service
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=content_discovery
+    networks:
+      - backend
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  # Redis Cache Service
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Neo4j Graph Database
+  neo4j:
+    image: neo4j:5.0
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+    environment:
+      - NEO4J_AUTH=neo4j/development
+      - NEO4J_dbms_memory_pagecache_size=512M
+      - NEO4J_dbms_memory_heap_initial__size=512M
+      - NEO4J_dbms_memory_heap_max__size=1G
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:7474"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  neo4j_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
