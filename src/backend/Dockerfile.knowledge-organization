@@ -1,0 +1,104 @@
+# Stage 1: Build environment with security scanning
+FROM python:3.11-slim AS builder
+
+# Set build arguments and environment variables
+ARG BUILD_DATE
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies and security tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY knowledge-organization/Pipfile knowledge-organization/Pipfile.lock ./
+
+# Install pipenv and dependencies
+RUN pip install --no-cache-dir pipenv==2023.10.3 \
+    && pipenv install --deploy --system --ignore-pipfile
+
+# Security scan for vulnerabilities
+RUN trivy filesystem --severity HIGH,CRITICAL --exit-code 1 /app
+
+# Stage 2: Production environment
+FROM python:3.11-slim
+
+# Set metadata labels
+LABEL maintainer="DevOps Team <devops@company.com>" \
+      version="1.0.0" \
+      description="Knowledge Organization Service Container" \
+      security.scan-date=${BUILD_DATE}
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP_USER=appuser \
+    APP_GROUP=appgroup \
+    LOG_VOLUME=/var/log/knowledge-organization
+
+# Create non-root user and group
+RUN groupadd -r ${APP_GROUP} && \
+    useradd -r -g ${APP_GROUP} -d /home/${APP_USER} -s /bin/bash ${APP_USER} && \
+    mkdir -p /home/${APP_USER}
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up logging directory with proper permissions
+RUN mkdir -p ${LOG_VOLUME} && \
+    chown -R ${APP_USER}:${APP_GROUP} ${LOG_VOLUME} && \
+    chmod 755 ${LOG_VOLUME}
+
+# Create app directory and set permissions
+WORKDIR /app
+RUN chown -R ${APP_USER}:${APP_GROUP} /app
+
+# Copy installed dependencies from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+
+# Copy application code
+COPY --chown=${APP_USER}:${APP_GROUP} knowledge-organization/app ./app
+COPY --chown=${APP_USER}:${APP_GROUP} knowledge-organization/main.py ./
+
+# Set proper file permissions
+RUN find /app -type f -exec chmod 644 {} \; && \
+    find /app -type d -exec chmod 755 {} \;
+
+# Expose port
+EXPOSE 8000
+
+# Set up health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Switch to non-root user
+USER ${APP_USER}
+
+# Set resource limits
+ENV UVICORN_WORKERS=4 \
+    UVICORN_LOOP=uvloop \
+    UVICORN_HTTP=httptools \
+    UVICORN_PROXY_HEADERS=True \
+    UVICORN_FORWARDED_ALLOW_IPS="*"
+
+# Start application with production configuration
+CMD ["python", "-m", "uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "4", \
+     "--loop", "uvloop", \
+     "--http", "httptools", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips", "*"]
