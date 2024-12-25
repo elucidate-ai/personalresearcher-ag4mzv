@@ -1,0 +1,128 @@
+# Development environment Kustomize overlay
+# Version: 1.0
+# Purpose: Customizes base Kubernetes resources for development deployment
+# Dependencies: Kubernetes v1.28+, Kustomize v5.0.1
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base resources to be customized
+resources:
+- ../../base/namespace.yaml
+- ../../base/configmap.yaml
+- ../../base/monitoring.yaml
+- ../../apps/api-gateway.yaml
+- ../../apps/content-discovery.yaml
+- ../../apps/knowledge-organization.yaml
+- ../../apps/output-generation.yaml
+- ../../apps/vector-service.yaml
+
+# Target namespace for all resources
+namespace: knowledge-system-dev
+
+# Common labels for all resources
+commonLabels:
+  environment: development
+  managed-by: kustomize
+  debug-enabled: "true"
+  tracing-enabled: "true"
+  app.kubernetes.io/environment: development
+
+# Development-specific patches
+patches:
+# Patch all deployments with development configuration
+- target:
+    kind: Deployment
+    name: ".*"
+  patch: |
+    spec:
+      # Single replica for development
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - name: .*
+            # Reduced resource limits for development
+            resources:
+              requests:
+                cpu: 250m
+                memory: 512Mi
+              limits:
+                cpu: 500m
+                memory: 1Gi
+            # Development environment variables
+            env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: ENABLE_TRACING
+              value: "true"
+            # Add development-specific volume mounts
+            volumeMounts:
+            - name: debug-logs
+              mountPath: /var/log/app
+          # Add development-specific volumes
+          volumes:
+          - name: debug-logs
+            emptyDir: {}
+
+# ConfigMap generators for development environment
+configMapGenerator:
+- name: app-config
+  behavior: merge
+  literals:
+  - ENVIRONMENT=development
+  - LOG_LEVEL=debug
+  - ENABLE_TRACING=true
+  - DEBUG_MODE=true
+  - METRICS_ENABLED=true
+  - HEALTH_CHECK_INTERVAL=15s
+  - API_RATE_LIMIT=5000
+  - API_RATE_WINDOW=3600
+  - PROMETHEUS_RETENTION=7d
+
+- name: monitoring-config
+  behavior: merge
+  literals:
+  - LOG_FORMAT=pretty
+  - LOG_LEVEL=debug
+  - GRAFANA_AUTH_ANONYMOUS_ENABLED=true
+  - PROMETHEUS_SCRAPE_INTERVAL=15s
+
+# Development-specific namespace annotations
+patchesJson6902:
+- target:
+    version: v1
+    kind: Namespace
+    name: knowledge-system
+  patch: |
+    - op: add
+      path: /metadata/annotations/environment
+      value: development
+    - op: add
+      path: /metadata/annotations/debug.kubernetes.io/enabled
+      value: "true"
+
+# Images configuration for development
+images:
+- name: api-gateway
+  newTag: dev
+- name: content-discovery
+  newTag: dev
+- name: vector-service
+  newTag: dev
+- name: knowledge-organization
+  newTag: dev
+- name: output-generation
+  newTag: dev
+
+# Development-specific configurations
+vars:
+- name: ENVIRONMENT
+  objref:
+    kind: ConfigMap
+    name: app-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.ENVIRONMENT
