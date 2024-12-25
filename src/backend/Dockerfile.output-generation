@@ -1,0 +1,107 @@
+# -----------------------------
+# Stage 1: Builder
+# -----------------------------
+FROM node:20-alpine AS builder
+
+# Add build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git
+
+WORKDIR /app
+
+# Copy package files
+COPY output-generation/package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy TypeScript configuration
+COPY output-generation/tsconfig.json ./
+
+# Copy source code
+COPY output-generation/src ./src
+
+# Build TypeScript code
+RUN npm run build
+
+# Prune dev dependencies
+RUN npm prune --production
+
+# -----------------------------
+# Stage 2: Production
+# -----------------------------
+FROM node:20-alpine
+
+# Add labels
+LABEL maintainer="DevOps Team <devops@knowledge-curator.com>" \
+    application="knowledge-curator" \
+    component="output-generation" \
+    version="${VERSION}" \
+    build-date="${BUILD_DATE}" \
+    vcs-ref="${VCS_REF}"
+
+# Add runtime dependencies
+RUN apk add --no-cache \
+    curl \
+    tini \
+    # Required for PDF generation
+    fontconfig \
+    freetype \
+    # Security updates
+    ca-certificates
+
+# Create non-root user and group
+RUN addgroup -g 1001 -S node && \
+    adduser -u 1001 -S node -G node
+
+WORKDIR /app
+
+# Copy built artifacts from builder stage
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/package*.json ./
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3000 \
+    NODE_OPTIONS="--max-old-space-size=2048"
+
+# Set up security configurations
+RUN mkdir -p /app/logs && \
+    chown -R node:node /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER node
+
+# Health check configuration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Expose port
+EXPOSE 3000
+
+# Set resource limits
+ENV MEMORY_LIMIT=2048 \
+    CPU_LIMIT=1000 \
+    PIDS_LIMIT=50 \
+    MAX_FILE_DESCRIPTORS=1000
+
+# Use tini as init system
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the application
+CMD ["node", "dist/app.js"]
+
+# Security options
+SECURITY_OPT="no-new-privileges:true"
+
+# Read-only root filesystem
+VOLUME ["/app/logs"]
+READONLY_ROOTFS=true
+
+# Drop all capabilities except those needed
+DROP_CAPS="ALL"
