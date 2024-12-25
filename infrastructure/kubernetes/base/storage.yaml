@@ -1,0 +1,119 @@
+# Kubernetes Storage Configuration
+# Version: v1
+# Purpose: Define persistent storage resources for knowledge aggregation system
+# Dependencies: 
+# - k8s.io/api/core/v1 v1.28+
+# - k8s.io/api/storage/v1 v1.28+
+
+---
+# StorageClass for optimized gp3 EBS volumes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-storage-class
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iopsPerGB: "3000"
+  throughput: "125"
+  encrypted: "true"
+  kmsKeyId: ${STORAGE_ENCRYPTION_KEY}
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+
+---
+# MongoDB Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-data
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/part-of: database
+  annotations:
+    volume.beta.kubernetes.io/storage-class: gp3-storage-class
+    backup.velero.io/backup-volumes: data
+    monitoring.kubernetes.io/scrape: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp3-storage-class
+
+---
+# Neo4j Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neo4j-data
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: neo4j
+    app.kubernetes.io/part-of: database
+  annotations:
+    volume.beta.kubernetes.io/storage-class: gp3-storage-class
+    backup.velero.io/backup-volumes: data
+    monitoring.kubernetes.io/scrape: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: gp3-storage-class
+
+---
+# Redis Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/part-of: cache
+  annotations:
+    volume.beta.kubernetes.io/storage-class: gp3-storage-class
+    backup.velero.io/backup-volumes: data
+    monitoring.kubernetes.io/scrape: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: gp3-storage-class
+
+---
+# Backup Storage Configuration
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: backup
+  annotations:
+    backup.velero.io/backup-volumes: backup
+    retention.backup.kubernetes.io/days: "${BACKUP_RETENTION_DAYS}"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: gp3-storage-class
