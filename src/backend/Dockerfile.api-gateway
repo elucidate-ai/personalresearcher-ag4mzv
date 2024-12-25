@@ -1,0 +1,85 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+# Add labels for better maintainability
+LABEL maintainer="Knowledge Curator Team" \
+      description="API Gateway service for Knowledge Curator platform" \
+      version="1.0.0"
+
+# Set working directory
+WORKDIR /app
+
+# Install python and build dependencies for node-gyp
+# Required for some npm packages that need compilation
+RUN apk add --no-cache python3 make g++ 
+
+# Copy package files for dependency installation
+COPY api-gateway/package*.json ./
+
+# Install all dependencies including devDependencies
+RUN npm ci
+
+# Copy source code and config files
+COPY api-gateway/tsconfig.json ./
+COPY api-gateway/src ./src
+
+# Build TypeScript code
+RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
+# Runtime stage
+FROM node:20-alpine
+
+# Add labels for the runtime image
+LABEL maintainer="Knowledge Curator Team" \
+      description="API Gateway service for Knowledge Curator platform" \
+      version="1.0.0"
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache tini
+
+# Create non-root user and group
+RUN addgroup -g 1001 nodeapp && \
+    adduser -u 1001 -G nodeapp -s /bin/sh -D nodeapp
+
+# Copy package files
+COPY api-gateway/package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built files from builder stage
+COPY --from=builder --chown=nodeapp:nodeapp /app/dist ./dist
+
+# Set secure permissions
+RUN chown -R nodeapp:nodeapp /app && \
+    chmod -R 550 /app && \
+    chmod -R 770 /app/dist
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3000 \
+    NODE_OPTIONS="--max-old-space-size=2048" \
+    TZ=UTC
+
+# Switch to non-root user
+USER nodeapp
+
+# Expose application port
+EXPOSE 3000
+
+# Health check configuration
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Use tini as init system
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Set startup command
+CMD ["node", "dist/server.js"]
