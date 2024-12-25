@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package content;
+
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/empty.proto";      // v3.0.0
+
+option go_package = "./content";
+option java_package = "com.knowledge.content";
+
+// ContentType defines all supported content types with extensibility for future additions
+enum ContentType {
+  UNKNOWN = 0;
+  VIDEO = 1;
+  ARTICLE = 2;
+  PODCAST = 3;
+  BOOK = 4;
+  RESEARCH_PAPER = 5;
+  BLOG_POST = 6;
+  COURSE = 7;
+  PRESENTATION = 8;
+}
+
+// Content represents a comprehensive content item from any source with complete metadata
+message Content {
+  string id = 1;
+  string topic_id = 2;
+  ContentType type = 3;
+  string source_url = 4;
+  string title = 5;
+  string description = 6;
+  bytes content_data = 7;
+  float quality_score = 8;
+  map<string, string> metadata = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp processed_at = 11;
+  map<string, float> quality_metrics = 12;
+  repeated string tags = 13;
+  string language = 14;
+  uint64 content_size = 15;
+  string source_name = 16;
+  string author = 17;
+  google.protobuf.Timestamp published_at = 18;
+}
+
+// DiscoverContentRequest contains detailed filtering and pagination options for content discovery
+message DiscoverContentRequest {
+  string topic_id = 1;
+  repeated ContentType content_types = 2;
+  float min_quality_score = 3;
+  uint32 max_results = 4;
+  uint32 page_size = 5;
+  string page_token = 6;
+  map<string, string> filters = 7;
+  repeated string required_tags = 8;
+  string language_preference = 9;
+  google.protobuf.Timestamp published_after = 10;
+  google.protobuf.Timestamp published_before = 11;
+  repeated string excluded_sources = 12;
+  bool include_metadata = 13;
+  bool include_quality_metrics = 14;
+}
+
+// DiscoverContentResponse contains discovered content items with comprehensive metadata
+message DiscoverContentResponse {
+  repeated Content items = 1;
+  uint32 total_found = 2;
+  string next_page_token = 3;
+  google.protobuf.Timestamp processed_at = 4;
+  map<string, uint32> type_counts = 5;
+  float average_quality_score = 6;
+  map<string, string> processing_metadata = 7;
+}
+
+// AssessQualityRequest specifies content quality assessment parameters
+message AssessQualityRequest {
+  string content_id = 1;
+  ContentType type = 2;
+  bytes content_data = 3;
+  map<string, string> metadata = 4;
+  repeated string evaluation_aspects = 5;
+  bool deep_analysis = 6;
+  string context = 7;
+  map<string, float> weight_factors = 8;
+}
+
+// AssessQualityResponse provides detailed quality assessment results
+message AssessQualityResponse {
+  float quality_score = 1;
+  map<string, float> quality_metrics = 2;
+  repeated string improvement_suggestions = 3;
+  map<string, float> aspect_scores = 4;
+  repeated string quality_flags = 5;
+  string assessment_summary = 6;
+  google.protobuf.Timestamp assessed_at = 7;
+  map<string, string> assessment_metadata = 8;
+}
+
+// AggregateSourcesRequest defines parameters for multi-source content aggregation
+message AggregateSourcesRequest {
+  string topic_id = 1;
+  repeated string source_ids = 2;
+  map<string, string> source_filters = 3;
+  map<string, float> source_weights = 4;
+  uint32 max_items_per_source = 5;
+  bool deduplicate = 6;
+  repeated string required_fields = 7;
+  map<string, string> source_credentials = 8;
+}
+
+// AggregateSourcesResponse contains aggregated content with detailed source metrics
+message AggregateSourcesResponse {
+  repeated Content aggregated_content = 1;
+  map<string, string> source_metrics = 2;
+  google.protobuf.Timestamp aggregated_at = 3;
+  map<string, uint32> source_item_counts = 4;
+  map<string, float> source_quality_scores = 5;
+  repeated string failed_sources = 6;
+  map<string, string> aggregation_metadata = 7;
+  uint32 duplicate_count = 8;
+}
+
+// ContentService provides comprehensive content discovery and processing capabilities
+service ContentService {
+  // DiscoverContent searches and retrieves content based on specified criteria
+  rpc DiscoverContent(DiscoverContentRequest) returns (DiscoverContentResponse) {}
+  
+  // AssessQuality evaluates content quality using multiple criteria
+  rpc AssessQuality(AssessQualityRequest) returns (AssessQualityResponse) {}
+  
+  // AggregateSources combines content from multiple sources with deduplication
+  rpc AggregateSources(AggregateSourcesRequest) returns (AggregateSourcesResponse) {}
+}
