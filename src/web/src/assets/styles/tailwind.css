@@ -1,0 +1,150 @@
+/* Import global CSS variables and base styles */
+@import './global.css';
+
+/* Tailwind base layers */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base layer customizations */
+@layer base {
+  /* Custom theme configuration */
+  :root {
+    /* Colors - WCAG 2.1 AA compliant */
+    --color-primary: 37 99 235; /* #2563EB */
+    --color-primary-hover: 29 78 216; /* #1D4ED8 */
+    --color-primary-focus: 30 64 175; /* #1E40AF */
+    --color-primary-disabled: 147 197 253; /* #93C5FD */
+    
+    --color-secondary: 100 116 139; /* #64748B */
+    --color-secondary-hover: 71 85 105; /* #475569 */
+    --color-secondary-focus: 51 65 85; /* #334155 */
+    --color-secondary-disabled: 203 213 225; /* #CBD5E1 */
+    
+    --color-success: 16 185 129; /* #10B981 */
+    --color-warning: 245 158 11; /* #F59E0B */
+    --color-error: 239 68 68; /* #EF4444 */
+    --color-info: 59 130 246; /* #3B82F6 */
+  }
+}
+
+/* Component layer customizations */
+@layer components {
+  /* Knowledge Graph Node Styling */
+  .knowledge-graph-node {
+    @apply rounded-md p-4 shadow-sm transition-all duration-200 ease-in-out;
+    @apply hover:shadow-md focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply dark:bg-gray-800 dark:hover:bg-gray-700;
+  }
+
+  /* Content Panel Styling */
+  .content-panel {
+    @apply backdrop-blur-md bg-white/95 border border-gray-200;
+    @apply dark:bg-gray-900/95 dark:border-gray-700;
+    @apply rounded-lg shadow-lg;
+  }
+
+  /* Search Bar Styling */
+  .search-bar {
+    @apply w-full px-4 py-2 rounded-lg border border-gray-300;
+    @apply focus:ring-2 focus:ring-primary focus:border-primary;
+    @apply dark:bg-gray-800 dark:border-gray-600;
+  }
+
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg;
+    @apply hover:bg-primary-hover focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply disabled:bg-primary-disabled disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white px-4 py-2 rounded-lg;
+    @apply hover:bg-secondary-hover focus:ring-2 focus:ring-secondary focus:ring-offset-2;
+    @apply disabled:bg-secondary-disabled disabled:cursor-not-allowed;
+  }
+}
+
+/* Utility layer customizations */
+@layer utilities {
+  /* Text balance utility */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Responsive padding utilities */
+  .p-responsive {
+    @apply p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12;
+  }
+
+  /* Container width utilities */
+  .container-responsive {
+    @apply w-full mx-auto px-4;
+    @apply xs:max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl;
+  }
+}
+
+/* Tailwind plugins configuration */
+@tailwind {
+  /* Forms plugin configuration */
+  @apply {
+    .form-input,
+    .form-textarea,
+    .form-select,
+    .form-multiselect {
+      @apply rounded-md border-gray-300;
+      @apply focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50;
+      @apply dark:bg-gray-800 dark:border-gray-600;
+    }
+  }
+
+  /* Typography plugin configuration */
+  .prose {
+    @apply max-w-none;
+    @apply prose-headings:text-gray-900 prose-headings:font-semibold;
+    @apply prose-p:text-gray-600 prose-p:leading-relaxed;
+    @apply prose-a:text-primary prose-a:no-underline hover:prose-a:underline;
+    @apply prose-strong:text-gray-900 prose-strong:font-semibold;
+    @apply prose-code:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded;
+    @apply dark:prose-invert dark:prose-headings:text-gray-100;
+    @apply dark:prose-p:text-gray-300 dark:prose-a:text-primary-light;
+  }
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: 59 130 246; /* Adjusted for dark mode */
+    --color-primary-hover: 37 99 235;
+    --color-primary-focus: 29 78 216;
+    --color-primary-disabled: 147 197 253;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .prose {
+    max-width: none !important;
+  }
+}
+
+/* High contrast mode adjustments */
+@media screen and (forced-colors: active) {
+  .btn-primary,
+  .btn-secondary {
+    border: 2px solid currentColor;
+  }
+}
