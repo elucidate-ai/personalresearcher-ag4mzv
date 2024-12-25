@@ -1,0 +1,118 @@
+# Environment Files
+.env
+.env.*
+!.env.example
+!.env.development.template
+!.env.production.template
+!.env.test.template
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.Python
+venv/
+pip-log.txt
+.pip-cache/
+.npm
+.yarn
+.pnp.*
+
+# Build & Runtime
+dist/
+build/
+*.egg-info/
+.next/
+.nuxt/
+.output/
+.cache/
+.parcel-cache/
+
+# Testing & Coverage
+coverage/
+.coverage
+.pytest_cache/
+test-results/
+reports/
+junit.xml
+.nyc_output/
+cypress/videos/
+cypress/screenshots/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Logs & Debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
+logs/
+debug/
+
+# System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+*secret*.yaml
+!example-secret.yaml
+
+# SSL/TLS
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+!example.key.template
+
+# Temporary Files
+*.tmp
+*.temp
+.temp/
+tmp/
+
+# Local Development
+.local/
+.env.local
+.env.*.local
+config.local.js
+settings.local.*
+
+# Version Control
+.git/
+.gitattributes
+.gitkeep
+
+# Backup Files
+*.bak
+*.backup
+*~
+*.swp
+*.old
+
+# Generated Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+api-docs/
