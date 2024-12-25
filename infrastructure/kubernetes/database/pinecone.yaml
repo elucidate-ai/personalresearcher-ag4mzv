@@ -1,0 +1,147 @@
+# Kubernetes manifest for Pinecone vector database deployment
+# Version: v1
+# Dependencies:
+# - k8s.io/api/apps/v1 v1.28+
+# - k8s.io/api/core/v1 v1.28+
+
+---
+# StatefulSet for Pinecone vector database
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pinecone
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: vector-database
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    description: "Pinecone Vector Database for high-performance similarity search"
+    monitoring.kubernetes.io/scrape: "true"
+    security.kubernetes.io/enforced: "true"
+spec:
+  replicas: 3  # Defined by PINECONE_REPLICAS global
+  serviceName: pinecone
+  selector:
+    matchLabels:
+      app: pinecone
+  template:
+    metadata:
+      labels:
+        app: pinecone
+        app.kubernetes.io/name: knowledge-system
+        app.kubernetes.io/component: vector-database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: pinecone
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu
+                    operator: Exists
+      containers:
+        - name: pinecone
+          image: pinecone/server:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+          env:
+            - name: PINECONE_API_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: knowledge-system-config
+                  key: PINECONE_API_VERSION
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          volumeMounts:
+            - name: pinecone-data
+              mountPath: /data
+              readOnly: false
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: pinecone-data
+        labels:
+          app: pinecone
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3-storage-class
+        resources:
+          requests:
+            storage: 100Gi  # Defined by PINECONE_STORAGE_SIZE global
+
+---
+# Service for Pinecone vector database
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinecone
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: vector-database
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  ports:
+    - port: 8080  # Defined by PINECONE_PORT global
+      targetPort: 8080
+      name: http
+      protocol: TCP
+  selector:
+    app: pinecone
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
