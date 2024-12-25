@@ -1,0 +1,154 @@
+# Kubernetes API version: networking.k8s.io/v1, istio.io/v1beta1
+# Purpose: Core network configuration for knowledge aggregation system
+# Dependencies: Kubernetes Networking API, Istio Service Mesh
+
+---
+# Network Policy for default security controls
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-network-policy
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector: {}  # Applies to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: knowledge-system
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: knowledge-system
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+
+---
+# CoreDNS Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-config
+  namespace: knowledge-system
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health {
+            lameduck 5s
+        }
+        ready
+        kubernetes ${DNS_DOMAIN} in-addr.arpa ip6.arpa {
+            pods insecure
+            fallthrough in-addr.arpa ip6.arpa
+            ttl 30
+        }
+        prometheus :9153
+        forward . /etc/resolv.conf {
+            max_concurrent 1000
+        }
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+
+---
+# Service Mesh Configuration
+apiVersion: istio.io/v1beta1
+kind: MeshConfig
+metadata:
+  name: service-mesh-config
+  namespace: knowledge-system
+spec:
+  meshId: ${MESH_ID}
+  defaultConfig:
+    tracing:
+      sampling: ${TRACING_SAMPLING_RATE}
+      zipkin:
+        address: zipkin.istio-system:9411
+    proxyMetadata:
+      ISTIO_META_DNS_CAPTURE: "true"
+      ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+  enableTracing: true
+  enableAutoMtls: true
+  defaultServiceExportTo:
+    - "."
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+  trustDomain: cluster.local
+  rootNamespace: istio-system
+  defaultConfig:
+    discoveryAddress: istiod.istio-system:15012
+    proxyMetadata:
+      DNS_CAPTURE: "true"
+    holdApplicationUntilProxyStarts: true
+
+---
+# Service Mesh Telemetry Configuration
+apiVersion: istio.io/v1beta1
+kind: Telemetry
+metadata:
+  name: mesh-telemetry
+  namespace: knowledge-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: knowledge-system
+  tracing:
+    - providers:
+        - name: zipkin
+      randomSamplingPercentage: 100.0
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            metric: REQUEST_COUNT
+          tagOverrides:
+            response_code:
+              value: response.code
+  accessLogging:
+    - providers:
+        - name: envoy
+      filter:
+        expression: "response.code >= 400"
+
+---
+# Pod Network Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-network-config
+  namespace: knowledge-system
+data:
+  pod-cidr: ${POD_CIDR}
+  service-cidr: ${SERVICE_CIDR}
+  dns-domain: ${DNS_DOMAIN}
+  enable-ipv6: "false"
+  max-pods-per-node: "110"
+  network-plugin: "calico"
+  service-node-port-range: "30000-32767"
