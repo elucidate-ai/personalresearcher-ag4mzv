@@ -1,0 +1,114 @@
+# Stage 1: Builder stage with optimized dependency installation
+FROM python:3.11-slim as builder
+
+# Set build arguments and labels
+ARG BUILD_VERSION
+ARG BUILD_DATE
+ARG VCS_REF
+
+LABEL maintainer="DevOps Team <devops@company.com>" \
+      version="${BUILD_VERSION}" \
+      build-date="${BUILD_DATE}" \
+      vcs-ref="${VCS_REF}" \
+      com.company.vector-service.description="Vector Service for AI-powered knowledge aggregation" \
+      com.company.vector-service.monitoring="prometheus_endpoint=:50053"
+
+# Create non-root user for security
+RUN groupadd -r vectorservice && \
+    useradd -r -g vectorservice -s /bin/false -d /app vectorservice && \
+    mkdir -p /app && \
+    chown vectorservice:vectorservice /app
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies and security patches
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+        libgomp1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy dependency files with appropriate permissions
+COPY --chown=vectorservice:vectorservice Pipfile Pipfile.lock ./
+
+# Install pipenv with version pinning
+RUN pip install --no-cache-dir pipenv==2023.10.24
+
+# Install production dependencies to user local directory
+RUN pipenv install --deploy --system --ignore-pipfile && \
+    pip uninstall -y pipenv virtualenv-clone virtualenv && \
+    rm -rf /root/.cache
+
+# Stage 2: Runtime stage with minimal attack surface
+FROM python:3.11-slim
+
+# Create non-root user
+RUN groupadd -r vectorservice && \
+    useradd -r -g vectorservice -s /bin/false -d /app vectorservice && \
+    mkdir -p /app && \
+    chown vectorservice:vectorservice /app
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libgomp1 \
+        curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install gRPC health probe
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.11 && \
+    curl -L -o /bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
+# Copy installed dependencies from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code with proper permissions
+COPY --chown=vectorservice:vectorservice . .
+
+# Set secure Python path and environment variables
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHON_OPTIMIZATION=2 \
+    VECTOR_SERVICE_USER=vectorservice \
+    VECTOR_SERVICE_UID=1000 \
+    PYTHONHASHSEED=random \
+    GRPC_POLL_STRATEGY=epoll1 \
+    GRPC_ENABLE_FORK_SUPPORT=0 \
+    GRPC_DNS_RESOLVER=native
+
+# Configure resource limits
+RUN ulimit -n 65536 && \
+    ulimit -u 8192 && \
+    ulimit -m unlimited
+
+# Expose ports for gRPC, health check, and metrics
+EXPOSE 50051 50052 50053
+
+# Set up health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD ["/bin/grpc_health_probe", "-addr=:50052"]
+
+# Switch to non-root user
+USER vectorservice
+
+# Set entry point with proper user context
+ENTRYPOINT ["python", "-O", "main.py"]
+
+# Configure security options
+SECURITY_OPT ["no-new-privileges", "seccomp=unconfined"]
+
+# Set resource limits
+LIMIT_CPU "4"
+LIMIT_MEMORY "8Gi"
