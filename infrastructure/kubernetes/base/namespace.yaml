@@ -1,0 +1,41 @@
+# Kubernetes API version: v1
+# Purpose: Define isolated namespace for knowledge aggregation system
+# Dependencies: Core Kubernetes API
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: knowledge-system
+  labels:
+    # Standard Kubernetes recommended labels
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: knowledge-platform
+    app.kubernetes.io/part-of: knowledge-aggregation
+    # Environment label will be overridden by overlays
+    app.kubernetes.io/environment: base
+    # Security and compliance labels
+    security.kubernetes.io/enforced: "true"
+    policy.kubernetes.io/controlled: "true"
+    # Monitoring and observability labels
+    monitoring.kubernetes.io/enabled: "true"
+    logging.kubernetes.io/enabled: "true"
+  annotations:
+    # Description and ownership annotations
+    description: "Knowledge Aggregation System Namespace"
+    owner: "platform-team"
+    # Resource management annotations
+    scheduler.alpha.kubernetes.io/node-selector: "workload-type=application"
+    # Security annotations
+    container.seccomp.security.alpha.kubernetes.io/pod: "runtime/default"
+    container.apparmor.security.beta.kubernetes.io/pod: "runtime/default"
+    # Network policy annotations
+    network-policy.kubernetes.io/isolated: "true"
+    # Resource quota enforcement
+    quota.kubernetes.io/enabled: "true"
+    # Compliance and audit annotations
+    audit.kubernetes.io/level: "RequestResponse"
+    compliance.kubernetes.io/framework: "production-ready"
+spec:
+  finalizers:
+    - kubernetes
