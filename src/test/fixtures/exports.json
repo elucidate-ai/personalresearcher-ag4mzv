@@ -1,0 +1,193 @@
+{
+  "sampleExports": [
+    {
+      "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+      "format": "MARKDOWN",
+      "url": "https://storage.example.com/exports/550e8400-e29b-41d4-a716-446655440000.md",
+      "content": "# Machine Learning Fundamentals\n\n## Introduction\nThis comprehensive guide covers the essential concepts...\n\n## Core Concepts\n1. Supervised Learning\n2. Unsupervised Learning\n3. Neural Networks",
+      "metadata": {
+        "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+        "title": "Machine Learning Fundamentals",
+        "createdAt": "2024-01-15T08:00:00Z",
+        "updatedAt": "2024-01-15T08:30:00Z",
+        "author": "Dr. Sarah Johnson",
+        "version": "1.2.0",
+        "tags": ["machine-learning", "AI", "neural-networks"],
+        "complexity": "intermediate",
+        "estimatedReadTime": 45,
+        "language": "en",
+        "license": "CC BY-SA 4.0"
+      },
+      "sections": [
+        {
+          "id": "sec-001",
+          "title": "Introduction to Machine Learning",
+          "content": "Machine learning is a subset of artificial intelligence...",
+          "level": 1,
+          "order": 1,
+          "type": "text",
+          "subsections": [
+            {
+              "id": "sec-001-001",
+              "title": "Historical Overview",
+              "content": "The field of machine learning emerged...",
+              "level": 2,
+              "order": 1,
+              "type": "text",
+              "subsections": [],
+              "metadata": {
+                "sourceUrl": "https://example.com/ml-history",
+                "lastUpdated": "2024-01-14T12:00:00Z",
+                "contributors": ["Alice Smith", "Bob Wilson"]
+              }
+            }
+          ],
+          "metadata": {
+            "sourceUrl": "https://example.com/ml-intro",
+            "lastUpdated": "2024-01-15T08:00:00Z",
+            "contributors": ["Dr. Sarah Johnson"]
+          }
+        }
+      ],
+      "status": "completed",
+      "stats": {
+        "processingTime": 12500,
+        "contentLength": 15240,
+        "sectionCount": 12,
+        "imageCount": 5,
+        "videoCount": 2
+      }
+    },
+    {
+      "correlationId": "550e8400-e29b-41d4-a716-446655440001",
+      "format": "PDF",
+      "url": "https://storage.example.com/exports/550e8400-e29b-41d4-a716-446655440001.pdf",
+      "metadata": {
+        "id": "7b912f38-83a6-4c22-a70b-3c4c9c0e5c82",
+        "title": "Deep Learning Architecture Patterns",
+        "createdAt": "2024-01-15T09:00:00Z",
+        "updatedAt": "2024-01-15T09:45:00Z",
+        "author": "Prof. Michael Chen",
+        "version": "2.0.0",
+        "tags": ["deep-learning", "neural-networks", "architecture"],
+        "complexity": "advanced",
+        "estimatedReadTime": 90,
+        "language": "en",
+        "license": "MIT"
+      },
+      "sections": [
+        {
+          "id": "sec-001",
+          "title": "Architectural Foundations",
+          "content": "# Deep Learning Architectures\n\nModern deep learning systems...",
+          "level": 1,
+          "order": 1,
+          "type": "text",
+          "subsections": [],
+          "metadata": {
+            "sourceUrl": "https://example.com/dl-architectures",
+            "lastUpdated": "2024-01-15T09:00:00Z",
+            "contributors": ["Prof. Michael Chen", "Dr. Lisa Wong"]
+          }
+        }
+      ],
+      "status": "in_progress",
+      "stats": {
+        "processingTime": 8500,
+        "contentLength": 25680,
+        "sectionCount": 8,
+        "imageCount": 12,
+        "videoCount": 0
+      }
+    },
+    {
+      "correlationId": "550e8400-e29b-41d4-a716-446655440002",
+      "format": "NOTION",
+      "metadata": {
+        "id": "9c4f7e5b-4b3a-4f5c-9d8e-2f5c3b6a7d89",
+        "title": "Introduction to Neural Networks",
+        "createdAt": "2024-01-15T10:00:00Z",
+        "updatedAt": "2024-01-15T10:15:00Z",
+        "author": "Dr. James Wilson",
+        "version": "1.0.0",
+        "tags": ["neural-networks", "deep-learning", "beginner"],
+        "complexity": "basic",
+        "estimatedReadTime": 30,
+        "language": "en",
+        "license": "CC BY 4.0"
+      },
+      "status": "failed",
+      "error": {
+        "code": "NOTION_API_ERROR",
+        "message": "Failed to create Notion page: API rate limit exceeded",
+        "details": {
+          "requestId": "req_12345",
+          "statusCode": 429
+        },
+        "timestamp": "2024-01-15T10:15:00Z"
+      },
+      "stats": {
+        "processingTime": 2500,
+        "contentLength": 8420,
+        "sectionCount": 5,
+        "imageCount": 3,
+        "videoCount": 1
+      }
+    },
+    {
+      "correlationId": "550e8400-e29b-41d4-a716-446655440003",
+      "format": "MARKDOWN",
+      "metadata": {
+        "id": "5a3d7c6b-9e8f-4a2d-b1c7-8d9e6f4c3b2a",
+        "title": "Quantum Computing Basics",
+        "createdAt": "2024-01-15T11:00:00Z",
+        "updatedAt": "2024-01-15T11:00:00Z",
+        "author": "Dr. Emily Brown",
+        "version": "1.1.0",
+        "tags": ["quantum-computing", "physics", "computing"],
+        "complexity": "intermediate",
+        "estimatedReadTime": 60,
+        "language": "en",
+        "license": "Apache-2.0"
+      },
+      "status": "queued",
+      "stats": {
+        "processingTime": 0,
+        "contentLength": 18750,
+        "sectionCount": 10,
+        "imageCount": 8,
+        "videoCount": 3
+      }
+    },
+    {
+      "correlationId": "550e8400-e29b-41d4-a716-446655440004",
+      "format": "PDF",
+      "metadata": {
+        "id": "3b2a1d9e-7f6c-4e5d-a8b9-2c4d6e5f3a1b",
+        "title": "Advanced Data Structures",
+        "createdAt": "2024-01-15T12:00:00Z",
+        "updatedAt": "2024-01-15T12:00:00Z",
+        "author": "Prof. Robert Taylor",
+        "version": "1.0.0",
+        "tags": ["algorithms", "data-structures", "computer-science"],
+        "complexity": "advanced",
+        "estimatedReadTime": 120,
+        "language": "en",
+        "license": "MIT"
+      },
+      "status": "cancelled",
+      "error": {
+        "code": "USER_CANCELLED",
+        "message": "Export cancelled by user",
+        "timestamp": "2024-01-15T12:05:00Z"
+      },
+      "stats": {
+        "processingTime": 1500,
+        "contentLength": 32000,
+        "sectionCount": 15,
+        "imageCount": 20,
+        "videoCount": 0
+      }
+    }
+  ]
+}
