@@ -1,0 +1,124 @@
+{
+  "vectors": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "vector": [0.1, 0.2, -0.3, 0.4, /* ... 380 more values ... */ 0.15],
+      "quality_score": 0.95,
+      "metadata": {
+        "content_id": "550e8400-e29b-41d4-a716-446655440001",
+        "source": "research_paper",
+        "type": "text",
+        "timestamp": "2024-01-20T10:30:00Z",
+        "topic": "machine_learning",
+        "processing_time": 1.2,
+        "source_confidence": 0.92,
+        "validation_markers": {
+          "dimension_valid": true,
+          "quality_valid": true,
+          "metadata_complete": true
+        }
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "vector": [0.15, 0.25, -0.35, 0.45, /* ... 380 more values ... */ 0.2],
+      "quality_score": 0.92,
+      "metadata": {
+        "content_id": "550e8400-e29b-41d4-a716-446655440003",
+        "source": "research_paper",
+        "type": "text",
+        "timestamp": "2024-01-20T10:31:00Z",
+        "topic": "machine_learning",
+        "processing_time": 1.5,
+        "source_confidence": 0.90,
+        "validation_markers": {
+          "dimension_valid": true,
+          "quality_valid": true,
+          "metadata_complete": true
+        }
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440004",
+      "vector": [0.05, -0.15, 0.25, -0.35, /* ... 380 more values ... */ -0.1],
+      "quality_score": 0.45,
+      "metadata": {
+        "content_id": "550e8400-e29b-41d4-a716-446655440005",
+        "source": "blog_post",
+        "type": "text",
+        "timestamp": "2024-01-20T10:32:00Z",
+        "topic": "quantum_computing",
+        "processing_time": 0.8,
+        "source_confidence": 0.50,
+        "validation_markers": {
+          "dimension_valid": true,
+          "quality_valid": true,
+          "metadata_complete": true
+        }
+      }
+    }
+  ],
+  "test_cases": {
+    "similar_pairs": [
+      {
+        "vector1_id": "550e8400-e29b-41d4-a716-446655440000",
+        "vector2_id": "550e8400-e29b-41d4-a716-446655440002",
+        "expected_similarity": 0.92,
+        "relevance_category": "high"
+      },
+      {
+        "vector1_id": "550e8400-e29b-41d4-a716-446655440000",
+        "vector2_id": "550e8400-e29b-41d4-a716-446655440004",
+        "expected_similarity": 0.86,
+        "relevance_category": "boundary"
+      }
+    ],
+    "dissimilar_pairs": [
+      {
+        "vector1_id": "550e8400-e29b-41d4-a716-446655440002",
+        "vector2_id": "550e8400-e29b-41d4-a716-446655440004",
+        "expected_similarity": 0.45,
+        "relevance_category": "low"
+      }
+    ],
+    "processing_time_cases": [
+      {
+        "vector_id": "550e8400-e29b-41d4-a716-446655440000",
+        "expected_time": 1.2,
+        "complexity_level": "simple"
+      },
+      {
+        "vector_id": "550e8400-e29b-41d4-a716-446655440002",
+        "expected_time": 1.5,
+        "complexity_level": "medium"
+      },
+      {
+        "vector_id": "550e8400-e29b-41d4-a716-446655440004",
+        "expected_time": 0.8,
+        "complexity_level": "simple"
+      }
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "vector_dimension": 384,
+    "similarity_threshold": 0.85,
+    "max_processing_time": 5.0,
+    "quality_score_range": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "test_coverage": {
+      "similar_pairs": 2,
+      "dissimilar_pairs": 1,
+      "processing_time_cases": 3,
+      "total_vectors": 3
+    },
+    "validation_requirements": {
+      "dimension_check": true,
+      "quality_score_bounds": true,
+      "metadata_completeness": true,
+      "processing_time_limit": true
+    }
+  }
+}
