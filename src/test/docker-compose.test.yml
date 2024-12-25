@@ -1,0 +1,221 @@
+version: "3.8"
+
+services:
+  # API Gateway Test Service
+  api-gateway-test:
+    extends:
+      file: ../backend/docker-compose.yml
+      service: api-gateway
+    container_name: api-gateway-test
+    build:
+      target: test
+    environment:
+      - NODE_ENV=test
+      - PORT=3001
+      - REDIS_URI=redis://redis-test:6379/0
+      - RATE_LIMIT_WINDOW=60000
+      - RATE_LIMIT_MAX=100
+      - AUTH_SECRET=test-secret-key
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis-test
+    volumes:
+      - .:/app/test
+      - ../backend/api-gateway:/app
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Content Discovery Test Service
+  content-discovery-test:
+    extends:
+      file: ../backend/docker-compose.yml
+      service: content-discovery
+    container_name: content-discovery-test
+    build:
+      target: test
+    environment:
+      - PYTHON_ENV=test
+      - MONGODB_URI=mongodb://mongodb-test:27017/content_discovery_test
+      - REDIS_URI=redis://redis-test:6379/1
+      - YOUTUBE_API_KEY=test-youtube-key
+      - SPOTIFY_CLIENT_ID=test-spotify-id
+      - SPOTIFY_CLIENT_SECRET=test-spotify-secret
+    depends_on:
+      - mongodb-test
+      - redis-test
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Vector Service Test
+  vector-service-test:
+    extends:
+      file: ../backend/docker-compose.yml
+      service: vector-service
+    container_name: vector-service-test
+    build:
+      target: test
+    environment:
+      - PYTHON_ENV=test
+      - PINECONE_API_KEY=test-pinecone-key
+      - PINECONE_ENVIRONMENT=test
+      - REDIS_URI=redis://redis-test:6379/2
+    depends_on:
+      - redis-test
+    networks:
+      - test_network
+    healthcheck:
+      test: ["/bin/grpc_health_probe", "-addr=:50052"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Knowledge Organization Test Service
+  knowledge-organization-test:
+    extends:
+      file: ../backend/docker-compose.yml
+      service: knowledge-organization
+    container_name: knowledge-organization-test
+    build:
+      target: test
+    environment:
+      - PYTHON_ENV=test
+      - NEO4J_URI=bolt://neo4j-test:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=test-password
+      - REDIS_URI=redis://redis-test:6379/3
+    depends_on:
+      - neo4j-test
+      - redis-test
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Output Generation Test Service
+  output-generation-test:
+    extends:
+      file: ../backend/docker-compose.yml
+      service: output-generation
+    container_name: output-generation-test
+    build:
+      target: test
+    environment:
+      - NODE_ENV=test
+      - PORT=3002
+      - REDIS_URI=redis://redis-test:6379/4
+      - NOTION_API_KEY=test-notion-key
+    depends_on:
+      - redis-test
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Test Databases
+  mongodb-test:
+    image: mongo:7.0
+    container_name: mongodb-test
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=test_user
+      - MONGO_INITDB_ROOT_PASSWORD=test_password
+    volumes:
+      - mongodb_test_data:/data/db
+    networks:
+      - test_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  neo4j-test:
+    image: neo4j:5.0
+    container_name: neo4j-test
+    environment:
+      - NEO4J_AUTH=neo4j/test-password
+      - NEO4J_dbms_memory_pagecache_size=256M
+      - NEO4J_dbms.memory.heap.initial_size=256M
+      - NEO4J_dbms.memory.heap.max_size=512M
+    volumes:
+      - neo4j_test_data:/data
+    networks:
+      - test_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  redis-test:
+    image: redis:7.0-alpine
+    container_name: redis-test
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_test_data:/data
+    networks:
+      - test_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+volumes:
+  mongodb_test_data:
+    name: mongodb_test_data
+  neo4j_test_data:
+    name: neo4j_test_data
+  redis_test_data:
+    name: redis_test_data
+
+networks:
+  test_network:
+    name: knowledge_curator_test
+    driver: bridge
+    internal: true
+    attachable: true
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
