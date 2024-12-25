@@ -1,0 +1,194 @@
+# Kubernetes base monitoring configuration v1.28+
+# Purpose: Defines core monitoring infrastructure including namespace, RBAC, and resource management
+# Components: Prometheus v2.45.0, Grafana v9.5.3, AlertManager v0.25.0
+
+---
+# Monitoring Namespace Definition
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    environment: ${ENV}
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+    istio-injection: enabled
+  annotations:
+    monitoring.knowledge-system.io/description: "Monitoring namespace for observability stack"
+    monitoring.knowledge-system.io/owner: "platform-team"
+
+---
+# Service Account for Monitoring Components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+  annotations:
+    monitoring.knowledge-system.io/description: "Service account for monitoring components"
+
+---
+# Cluster Role for Monitoring Access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+rules:
+  # Core API Resources
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Network Resources
+  - apiGroups: 
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+      - ingresses/status
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Metrics API Access
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - pods
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Metrics Endpoints
+  - nonResourceURLs:
+      - /metrics
+      - /federate
+      - /ready
+      - /healthy
+    verbs:
+      - get
+
+---
+# Cluster Role Binding for Monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: monitoring
+    namespace: monitoring
+
+---
+# Resource Quota for Monitoring Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: monitoring-quota
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    pods: "50"
+
+---
+# LimitRange for Default Resource Constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: monitoring-limits
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "200m"
+        memory: "256Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+
+---
+# Network Policy for Monitoring Namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-network-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9090  # Prometheus
+        - protocol: TCP
+          port: 3000  # Grafana
+        - protocol: TCP
+          port: 9093  # AlertManager
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
