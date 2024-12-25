@@ -1,0 +1,157 @@
+# Web Frontend Kubernetes Manifests
+# Version: 1.0.0
+# Dependencies: 
+# - kubernetes v1.28+
+# - app-config ConfigMap
+# - knowledge-system namespace
+
+---
+# Web Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: knowledge-aggregation
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    description: "Knowledge Aggregation System Web Frontend"
+    kubernetes.io/change-cause: "Initial deployment of web frontend"
+spec:
+  replicas: 2  # Initial replica count, will be managed by HPA
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+        app.kubernetes.io/name: web
+        app.kubernetes.io/component: frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Pod Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Pod Anti-Affinity for High Availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - web
+              topologyKey: kubernetes.io/hostname
+
+      containers:
+      - name: web
+        image: web:latest  # Will be patched by CI/CD
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        
+        # Resource Limits as per Technical Specifications
+        resources:
+          requests:
+            cpu: "500m"    # 0.5 CPU core
+            memory: "1Gi"  # 1 GB memory
+          limits:
+            cpu: "1"       # 1 CPU core
+            memory: "2Gi"  # 2 GB memory
+        
+        # Container Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        
+        # Probes for Health Checking
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Environment Variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: app-config
+        
+        # Volume Mounts for Static Content
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      
+      # Pod Termination Configuration
+      terminationGracePeriodSeconds: 60
+
+---
+# Web Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: knowledge-aggregation
+    app.kubernetes.io/component: frontend
+  annotations:
+    service.beta.kubernetes.io/description: "Web Frontend Service"
+    prometheus.io/scrape: "true"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: web
+  sessionAffinity: None
