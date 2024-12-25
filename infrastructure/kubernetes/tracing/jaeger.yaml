@@ -1,0 +1,170 @@
+# Jaeger Operator version: 1.45.0
+# Purpose: Production-grade Jaeger deployment with high availability and Elasticsearch storage
+# Dependencies: jaegertracing/jaeger-operator
+
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: jaeger
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+    app.kubernetes.io/part-of: observability
+    app.kubernetes.io/managed-by: jaeger-operator
+  annotations:
+    monitoring.kubernetes.io/servicemonitor: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "16686"
+spec:
+  strategy: production  # Production deployment strategy for HA
+  
+  # Ingress configuration for external access
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    tls:
+      enabled: true
+      secretName: jaeger-tls-cert
+
+  # Elasticsearch storage configuration
+  storage:
+    type: elasticsearch
+    options:
+      es.server-urls: http://elasticsearch-master.monitoring:9200
+      es.num-shards: 3
+      es.num-replicas: 2
+      es.index-prefix: jaeger
+      es.max-num-spans: 50000
+      es.bulk.size: "${JAEGER_ES_BULK_SIZE}"
+      es.bulk.workers: 10
+      es.bulk.flush-interval: "200ms"
+      es.timeout: "15s"
+    secretName: jaeger-es-secret
+
+  # Collector configuration
+  collector:
+    replicas: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+    options:
+      collector.queue-size: "2000"
+      collector.num-workers: "50"
+      collector.port: "${JAEGER_COLLECTOR_PORT}"
+    service:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+  # Query service configuration
+  query:
+    replicas: 2
+    resources:
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+    options:
+      query.port: "${JAEGER_QUERY_PORT}"
+      query.base-path: /jaeger
+    serviceMonitor:
+      enabled: true
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "${JAEGER_QUERY_PORT}"
+
+  # Agent configuration
+  agent:
+    strategy: DaemonSet
+    resources:
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+    options:
+      agent.port: "${JAEGER_AGENT_PORT}"
+      agent.tags: "cluster=production"
+      sampler.type: probabilistic
+      sampler.param: "${JAEGER_SAMPLING_RATE}"
+
+  # Common configuration
+  commonSpec:
+    annotations:
+      scheduler.alpha.kubernetes.io/critical-pod: ""
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - tracing
+              topologyKey: kubernetes.io/hostname
+
+  # Security context
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+  # Volume configuration for persistence
+  volumes:
+    - name: tmp-volume
+      emptyDir: {}
+    - name: config-volume
+      configMap:
+        name: jaeger-config
+
+  # OpenTelemetry integration
+  sampling:
+    options:
+      default_strategy:
+        type: probabilistic
+        param: 0.1
+      service_strategies:
+        - service: critical-service
+          type: probabilistic
+          param: 1.0
+
+---
+# Service Monitor for Prometheus integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: jaeger-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jaeger
+  endpoints:
+    - port: http-query
+      path: /metrics
+      interval: 15s
