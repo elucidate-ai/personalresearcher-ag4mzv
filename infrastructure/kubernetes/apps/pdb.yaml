@@ -1,0 +1,43 @@
+# API Version: policy/v1 (Kubernetes 1.21+)
+# Purpose: Define PodDisruptionBudgets for critical services to maintain high availability
+# Dependencies: knowledge-system namespace, api-gateway and vector-service deployments
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: knowledge-system
+  labels:
+    app: api-gateway
+    component: backend
+    tier: critical
+    managed-by: kubernetes
+  annotations:
+    description: "PDB for API Gateway ensuring high availability during disruptions"
+    sla-target: "99.9%"
+    last-updated: "2024-01-20"
+spec:
+  minAvailable: "75%"  # Ensures at least 75% of pods are available during disruptions
+  selector:
+    matchLabels:
+      app: api-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vector-service-pdb
+  namespace: knowledge-system
+  labels:
+    app: vector-service
+    component: core
+    tier: critical
+    managed-by: kubernetes
+  annotations:
+    description: "PDB for Vector Service ensuring service continuity during disruptions"
+    sla-target: "99.9%"
+    last-updated: "2024-01-20"
+spec:
+  minAvailable: "50%"  # Ensures at least 50% of pods are available during disruptions
+  selector:
+    matchLabels:
+      app: vector-service
