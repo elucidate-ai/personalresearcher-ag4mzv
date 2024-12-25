@@ -1,0 +1,174 @@
+# Content Discovery Service Deployment Manifest
+# Version: 1.0.0
+# Dependencies: 
+# - Kubernetes v1.28+
+# - content-discovery:1.0.0 container image
+# - app-config ConfigMap
+# - knowledge-system Namespace
+
+---
+# Deployment configuration for Content Discovery service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-discovery
+  namespace: knowledge-system
+  labels:
+    app: content-discovery
+    component: backend
+    part-of: knowledge-aggregation-system
+    app.kubernetes.io/name: content-discovery
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+    description: "Content Discovery service for knowledge aggregation"
+    security.kubernetes.io/seccomp-profile: "runtime/default"
+spec:
+  replicas: 2  # Initial replicas, will scale 2-8 based on load
+  selector:
+    matchLabels:
+      app: content-discovery
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: content-discovery
+      annotations:
+        checksum/config: "${CONFIG_CHECKSUM}"  # Will be replaced by deployment tool
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: content-discovery
+        image: content-discovery:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        envFrom:
+        - configMapRef:
+            name: app-config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 30
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - content-discovery
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+
+---
+# Service configuration for Content Discovery service
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-discovery
+  namespace: knowledge-system
+  labels:
+    app: content-discovery
+    app.kubernetes.io/name: content-discovery
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    service.kubernetes.io/description: "Content Discovery service endpoint"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: content-discovery
+
+---
+# Horizontal Pod Autoscaler for Content Discovery service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: content-discovery
+  namespace: knowledge-system
+  labels:
+    app: content-discovery
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: content-discovery
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
