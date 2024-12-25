@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Character encoding and viewport configuration -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Primary meta tags -->
+  <title>Knowledge Curator - AI-Powered Knowledge Aggregation System</title>
+  <meta name="description" content="AI-powered knowledge aggregation and curation system for transforming scattered information into structured, digestible knowledge" />
+  <meta name="theme-color" content="#2563EB" />
+
+  <!-- iOS meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <!-- Open Graph / Social meta tags -->
+  <meta property="og:title" content="Knowledge Curator" />
+  <meta property="og:description" content="Transform scattered information into structured knowledge" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Security headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://api.knowledge-curator.com;" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+
+  <!-- Preload critical fonts -->
+  <link 
+    rel="preload" 
+    href="/assets/fonts/inter/Inter-Regular.woff2" 
+    as="font" 
+    type="font/woff2" 
+    crossorigin="anonymous"
+  />
+  <link 
+    rel="preload" 
+    href="/assets/fonts/inter/Inter-Medium.woff2" 
+    as="font" 
+    type="font/woff2" 
+    crossorigin="anonymous"
+  />
+  <link 
+    rel="preload" 
+    href="/assets/fonts/inter/Inter-SemiBold.woff2" 
+    as="font" 
+    type="font/woff2" 
+    crossorigin="anonymous"
+  />
+  <link 
+    rel="preload" 
+    href="/assets/fonts/inter/Inter-Bold.woff2" 
+    as="font" 
+    type="font/woff2" 
+    crossorigin="anonymous"
+  />
+
+  <!-- Favicon and PWA icons -->
+  <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Error tracking initialization -->
+  <script>
+    window.addEventListener('error', function(e) {
+      console.error('Global error:', e.error);
+      // Initialize error tracking only in production
+      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        Sentry.init({
+          dsn: import.meta.env.VITE_SENTRY_DSN,
+          environment: import.meta.env.MODE,
+          tracesSampleRate: 0.1
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <!-- React application mount point with accessibility support -->
+  <div 
+    id="root" 
+    role="main" 
+    aria-label="Knowledge Curator Application"
+  ></div>
+
+  <!-- Fallback for disabled JavaScript -->
+  <noscript>
+    <div class="container-responsive p-responsive">
+      <h1 class="text-xl font-semibold text-gray-900 mb-4">JavaScript Required</h1>
+      <p class="text-gray-600">
+        JavaScript is required to use the Knowledge Curator application. Please enable JavaScript in your browser settings.
+      </p>
+    </div>
+  </noscript>
+
+  <!-- Application entry point -->
+  <script type="module" src="/src/main.tsx" crossorigin="anonymous"></script>
+</body>
+</html>
