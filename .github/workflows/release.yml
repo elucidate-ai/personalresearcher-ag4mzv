@@ -1,0 +1,189 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        type: choice
+        description: 'Type of version bump'
+        options:
+          - major
+          - minor
+          - patch
+        required: true
+      skip_tests:
+        type: boolean
+        description: 'Skip non-critical tests'
+        default: false
+
+# Ensure only one release workflow runs at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+  issues: write
+  pull-requests: write
+  security-events: write
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      changelog: ${{ steps.release.outputs.changelog }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Run security scans
+        uses: snyk/actions@v3
+        with:
+          args: --severity-threshold=high
+
+      - name: Generate release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 19
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+          branches: |
+            [
+              'main',
+              {name: 'beta', prerelease: true},
+              {name: 'alpha', prerelease: true}
+            ]
+          
+  validate:
+    name: Validate Release
+    needs: prepare
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify version consistency
+        run: |
+          echo "Verifying version ${{ needs.prepare.outputs.version }}"
+          jq -e ".version == \"${{ needs.prepare.outputs.version }}\"" package.json
+
+      - name: Run container security scans
+        uses: aquasecurity/trivy-action@v1
+        with:
+          scan-type: 'fs,vuln'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Validate deployment configs
+        run: |
+          for file in deployment-config*.yml; do
+            if [ -f "$file" ]; then
+              yamllint "$file"
+            fi
+          done
+
+  deploy:
+    name: Production Deployment
+    needs: [prepare, validate]
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify pre-deployment conditions
+        run: |
+          # Check database backups
+          aws rds describe-db-snapshots --snapshot-type automated
+          # Verify cluster health
+          kubectl get nodes
+          kubectl get pods -A
+
+      - name: Deploy backend services
+        uses: ./.github/workflows/backend.yml
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          environment: production
+
+      - name: Deploy frontend
+        uses: ./.github/workflows/web.yml
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          environment: production
+
+      - name: Run health checks
+        run: |
+          # Wait for services to stabilize
+          sleep 30
+          
+          # Check API Gateway health
+          curl -f https://api.knowledge-curator.com/health
+          
+          # Check individual service health
+          for service in content-discovery vector-service knowledge-organization output-generation; do
+            curl -f https://api.knowledge-curator.com/$service/health
+          done
+          
+          # Check frontend
+          curl -f https://knowledge-curator.com/health
+
+      - name: Update documentation
+        if: success()
+        run: |
+          echo "${{ needs.prepare.outputs.changelog }}" >> CHANGELOG.md
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog for version ${{ needs.prepare.outputs.version }}"
+          git push
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            Release ${{ needs.prepare.outputs.version }} deployment ${{ job.status }}
+            ${{ needs.prepare.outputs.changelog }}
