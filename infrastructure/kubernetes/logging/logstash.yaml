@@ -1,0 +1,244 @@
+# Logstash Kubernetes Configuration
+# Version: v1
+# Dependencies:
+# - k8s.io/api/apps/v1 v1
+# - k8s.io/api/core/v1 v1
+# - k8s.io/api/policy/v1 v1
+# - k8s.io/api/networking/v1 v1
+# - logstash:8.9.0
+
+---
+# ConfigMap for Logstash pipeline configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: knowledge-system
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+        ssl => false
+        client_inactivity_timeout => 300
+      }
+    }
+
+    filter {
+      grok {
+        match => { "message" => "%{COMBINEDAPACHELOG}" }
+      }
+      date {
+        match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
+      }
+      mutate {
+        add_field => {
+          "environment" => "${ENVIRONMENT}"
+          "cluster_name" => "${CLUSTER_NAME}"
+        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["elasticsearch:9200"]
+        index => "logstash-%{+YYYY.MM.dd}"
+        document_type => "_doc"
+        template_overwrite => true
+      }
+    }
+
+---
+# ConfigMap for JVM options
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-jvm-config
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+data:
+  jvm.options: |
+    -Xms${LOGSTASH_HEAP_SIZE}
+    -Xmx${LOGSTASH_HEAP_SIZE}
+    -XX:+UseG1GC
+    -XX:G1ReservePercent=25
+    -XX:InitiatingHeapOccupancyPercent=30
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/usr/share/logstash/data/heap-dump.hprof
+
+---
+# Service for Logstash
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9600"
+    prometheus.io/path: "/metrics"
+spec:
+  ports:
+    - name: beats
+      port: 5044
+      targetPort: 5044
+      protocol: TCP
+    - name: http
+      port: 9600
+      targetPort: 9600
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: logstash
+  type: ClusterIP
+
+---
+# Deployment for Logstash
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: logstash
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: logstash
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9600"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: sysctl
+          image: busybox:1.35
+          command: ['sysctl', '-w', 'vm.max_map_count=262144']
+          securityContext:
+            privileged: true
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:8.9.0
+          ports:
+            - name: beats
+              containerPort: 5044
+            - name: http
+              containerPort: 9600
+          resources:
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+          env:
+            - name: LS_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: cluster-config
+                  key: environment
+            - name: CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: cluster-config
+                  key: cluster_name
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: logstash-config
+              mountPath: /usr/share/logstash/pipeline/logstash.conf
+              subPath: logstash.conf
+            - name: logstash-jvm
+              mountPath: /usr/share/logstash/config/jvm.options
+              subPath: jvm.options
+      volumes:
+        - name: logstash-config
+          configMap:
+            name: logstash-config
+        - name: logstash-jvm
+          configMap:
+            name: logstash-jvm-config
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - logstash
+              topologyKey: kubernetes.io/hostname
+
+---
+# PodDisruptionBudget for Logstash
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: logstash-pdb
+  namespace: knowledge-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: logstash
+
+---
+# NetworkPolicy for Logstash
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: logstash-network-policy
+  namespace: knowledge-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: logstash
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: filebeat
+      ports:
+        - port: 5044
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 9600
