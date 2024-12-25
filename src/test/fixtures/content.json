@@ -1,0 +1,140 @@
+{
+  "mockContentItems": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "topic_id": "a67e8400-e29b-41d4-a716-446655441111",
+      "type": "video",
+      "title": "Advanced Machine Learning Techniques",
+      "description": "Comprehensive overview of cutting-edge machine learning algorithms including deep learning, reinforcement learning, and neural networks with practical examples and implementation guidelines.",
+      "source_url": "https://www.youtube.com/watch?v=ml-tutorial-001",
+      "quality_score": 0.95,
+      "metadata": {
+        "duration": 3600,
+        "resolution": "1080p",
+        "platform": "YouTube",
+        "views": 50000
+      },
+      "content_type_metadata": {
+        "format": "video/mp4",
+        "bitrate": "5000kbps",
+        "frame_rate": 30
+      },
+      "validation_metadata": {
+        "content_verified": true,
+        "last_verified": "2023-11-01T10:00:00Z",
+        "verification_method": "automated"
+      },
+      "created_at": "2023-11-01T09:00:00Z",
+      "updated_at": "2023-11-01T09:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "topic_id": "a67e8400-e29b-41d4-a716-446655441111",
+      "type": "podcast",
+      "title": "Understanding Neural Networks",
+      "description": "In-depth discussion about neural network architectures, training methodologies, and real-world applications with industry experts and researchers.",
+      "source_url": "https://open.spotify.com/episode/neural-networks-101",
+      "quality_score": 0.92,
+      "metadata": {
+        "duration": 2700,
+        "episode_number": 42,
+        "series_name": "AI Breakthroughs",
+        "platform": "Spotify"
+      },
+      "content_type_metadata": {
+        "format": "audio/mp3",
+        "bitrate": "320kbps",
+        "sample_rate": "44.1kHz"
+      },
+      "validation_metadata": {
+        "content_verified": true,
+        "last_verified": "2023-11-01T11:00:00Z",
+        "verification_method": "manual"
+      },
+      "created_at": "2023-11-01T10:00:00Z",
+      "updated_at": "2023-11-01T10:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "topic_id": "a67e8400-e29b-41d4-a716-446655441111",
+      "type": "article",
+      "title": "Deep Learning: A Comprehensive Guide",
+      "description": "Detailed exploration of deep learning fundamentals, including neural networks, convolutional networks, and recurrent networks with code examples and best practices.",
+      "source_url": "https://arxiv.org/abs/2023.12345",
+      "quality_score": 0.98,
+      "metadata": {
+        "author": "Dr. Jane Smith",
+        "publication_date": "2023-10-15",
+        "publisher": "ArXiv",
+        "word_count": 5000
+      },
+      "content_type_metadata": {
+        "format": "application/pdf",
+        "pages": 25,
+        "references": 45
+      },
+      "validation_metadata": {
+        "content_verified": true,
+        "last_verified": "2023-11-01T12:00:00Z",
+        "verification_method": "peer_review"
+      },
+      "created_at": "2023-11-01T11:00:00Z",
+      "updated_at": "2023-11-01T11:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "topic_id": "a67e8400-e29b-41d4-a716-446655441111",
+      "type": "book",
+      "title": "Machine Learning: From Theory to Practice",
+      "description": "Comprehensive textbook covering machine learning concepts, algorithms, and practical implementations with detailed examples and case studies for both beginners and advanced practitioners.",
+      "source_url": "https://books.google.com/ml-textbook-001",
+      "quality_score": 0.96,
+      "metadata": {
+        "author": "Prof. John Doe",
+        "isbn": "978-0-123456-78-9",
+        "publisher": "Technical Publications",
+        "publication_year": 2023,
+        "page_count": 450
+      },
+      "content_type_metadata": {
+        "format": "application/pdf",
+        "chapters": 15,
+        "includes_exercises": true
+      },
+      "validation_metadata": {
+        "content_verified": true,
+        "last_verified": "2023-11-01T13:00:00Z",
+        "verification_method": "expert_review"
+      },
+      "created_at": "2023-11-01T12:00:00Z",
+      "updated_at": "2023-11-01T12:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440004",
+      "topic_id": "a67e8400-e29b-41d4-a716-446655441111",
+      "type": "video",
+      "title": "Practical Neural Network Implementation",
+      "description": "Step-by-step tutorial on implementing neural networks using popular frameworks with real-world examples and performance optimization techniques.",
+      "source_url": "https://www.youtube.com/watch?v=nn-tutorial-002",
+      "quality_score": 0.91,
+      "metadata": {
+        "duration": 4500,
+        "resolution": "4K",
+        "platform": "YouTube",
+        "views": 75000
+      },
+      "content_type_metadata": {
+        "format": "video/mp4",
+        "bitrate": "8000kbps",
+        "frame_rate": 60
+      },
+      "validation_metadata": {
+        "content_verified": true,
+        "last_verified": "2023-11-01T14:00:00Z",
+        "verification_method": "automated"
+      },
+      "created_at": "2023-11-01T13:00:00Z",
+      "updated_at": "2023-11-01T13:00:00Z"
+    }
+  ]
+}
