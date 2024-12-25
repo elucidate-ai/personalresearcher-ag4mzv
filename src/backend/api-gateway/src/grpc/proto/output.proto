@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package output;
+
+import "google/protobuf/timestamp.proto";  // v3 - For timestamp fields
+import "google/protobuf/empty.proto";      // v3 - For empty messages
+
+option go_package = "./output";
+option java_package = "com.knowledge.output";
+option java_multiple_files = true;
+option optimize_for = SPEED;
+option cc_enable_arenas = true;
+
+// Supported document export formats with extensibility for future formats
+enum ExportFormat {
+  NOTION = 0;
+  MARKDOWN = 1;
+  PDF = 2;
+  reserved 3 to 10; // Reserved for future format additions
+}
+
+// Detailed status tracking for export operations
+enum ExportStatus {
+  PENDING = 0;
+  IN_PROGRESS = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  CANCELLED = 4;
+  reserved 5 to 10; // Reserved for future status types
+}
+
+// Comprehensive request message for document export with customization options
+message ExportRequest {
+  string topic_id = 1;
+  ExportFormat format = 2;
+  bool include_graphs = 3;
+  bool include_references = 4;
+  map<string, string> custom_styles = 5;
+  repeated string sections_to_include = 6;
+  int32 max_depth = 7;
+  string template_id = 8;
+}
+
+// Detailed response message for document export with metadata
+message ExportResponse {
+  string export_id = 1;
+  ExportStatus status = 2;
+  string document_url = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  int64 document_size = 6;
+  string content_hash = 7;
+  map<string, string> metadata = 8;
+}
+
+// Request message for checking export progress with optional fields
+message ExportProgressRequest {
+  string export_id = 1;
+  bool include_details = 2;
+  bool include_errors = 3;
+}
+
+// Error details for progress tracking
+message Error {
+  string code = 1;
+  string message = 2;
+  string details = 3;
+  map<string, string> metadata = 4;
+}
+
+// Detailed progress response with error handling
+message ExportProgressResponse {
+  ExportStatus status = 1;
+  float progress_percentage = 2;
+  string message = 3;
+  repeated string completed_steps = 4;
+  repeated string pending_steps = 5;
+  repeated Error errors = 6;
+  map<string, string> debug_info = 7;
+}
+
+// Comprehensive gRPC service for document generation and export with progress tracking
+service OutputService {
+  // Initiates document export process with validation
+  rpc ExportDocument(ExportRequest) returns (ExportResponse) {
+    option (google.api.http) = {
+      post: "/v1/export"
+      body: "*"
+    };
+    option deadline = "30s";
+    option retry_policy = {
+      max_attempts: 3,
+      initial_backoff: "1s",
+      max_backoff: "10s"
+    };
+  }
+
+  // Retrieves current progress of export operation with caching
+  rpc GetExportProgress(ExportProgressRequest) returns (ExportProgressResponse) {
+    option (google.api.http) = {
+      get: "/v1/export/{export_id}/progress"
+    };
+    option deadline = "5s";
+    option cache_ttl = "5s";
+  }
+
+  // Streams real-time progress updates with heartbeat
+  rpc StreamExportProgress(ExportProgressRequest) returns (stream ExportProgressResponse) {
+    option (google.api.http) = {
+      get: "/v1/export/{export_id}/progress/stream"
+    };
+    option heartbeat_interval = "5s";
+    option idle_timeout = "300s";
+  }
+}
