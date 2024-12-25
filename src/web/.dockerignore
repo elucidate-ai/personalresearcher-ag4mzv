@@ -1,0 +1,80 @@
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Build outputs
+dist
+.next
+build
+*.tsbuildinfo
+
+# Test files and coverage reports
+coverage
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.*
+
+# Development configurations
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+.eslintrc*
+.prettierrc*
+tsconfig.json
+.editorconfig
+
+# Version control
+.git
+.gitignore
+.gitattributes
+.husky
+
+# Environment and secrets
+.env*
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Documentation
+*.md
+README.md
+CHANGELOG.md
+LICENSE
+docs
+
+# Logs
+*.log
+logs
+
+# Development tools
+nodemon.json
+.babelrc
+webpack.config.*
+postcss.config.*
+tailwind.config.*
+
+# Cache directories
+.cache
+.npm
+.yarn
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Debug files
+.debug
+*.debug
+
+# Docker files (except Dockerfile)
+.docker
+docker-compose*
