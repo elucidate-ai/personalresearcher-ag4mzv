@@ -1,0 +1,161 @@
+# Kubernetes NetworkPolicy manifest for zero-trust network security
+# API Version: networking.k8s.io/v1
+# Purpose: Implement granular pod-to-pod communication rules with service isolation
+# Dependencies: Kubernetes Networking API v1
+
+---
+# API Gateway Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-policy
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: network-security
+    app.kubernetes.io/part-of: knowledge-system
+    app.kubernetes.io/managed-by: kustomize
+    security.kubernetes.io/enforced: "true"
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+      component: frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow incoming traffic from load balancer and monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: knowledge-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: monitoring
+      ports:
+        - protocol: TCP
+          port: 3000  # API Gateway service port
+        - protocol: TCP
+          port: 9090  # Metrics port
+  egress:
+    # Allow communication to backend services
+    - to:
+        - podSelector:
+            matchLabels:
+              component: backend
+      ports:
+        - protocol: TCP
+          port: 8080  # Backend HTTP port
+        - protocol: TCP
+          port: 9000  # Backend gRPC port
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# Backend Services Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-services-policy
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: network-security
+    app.kubernetes.io/part-of: knowledge-system
+    app.kubernetes.io/managed-by: kustomize
+    security.kubernetes.io/enforced: "true"
+spec:
+  podSelector:
+    matchLabels:
+      component: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow incoming traffic from API Gateway only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8080  # HTTP port
+        - protocol: TCP
+          port: 9000  # gRPC port
+    # Allow monitoring scraping
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090  # Metrics port
+  egress:
+    # Allow inter-service communication
+    - to:
+        - podSelector:
+            matchLabels:
+              component: backend
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow external API access
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8      # Private network
+              - 172.16.0.0/12   # Private network
+              - 192.168.0.0/16  # Private network
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS
+        - protocol: TCP
+          port: 80   # HTTP
+
+---
+# Default Deny Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-policy
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/component: network-security
+    app.kubernetes.io/part-of: knowledge-system
+    app.kubernetes.io/managed-by: kustomize
+    security.kubernetes.io/enforced: "true"
+spec:
+  podSelector: {}  # Applies to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []  # No ingress rules - deny all incoming traffic by default
+  egress:
+    # Allow only DNS resolution by default
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
