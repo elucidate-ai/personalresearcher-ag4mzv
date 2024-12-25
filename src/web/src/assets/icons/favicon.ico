@@ -1,0 +1,33 @@
+File Format: ICO (Windows Icon)
+Total File Size: < 5KB (optimized)
+
+Contains 3 image sizes:
+1. 16x16 pixels
+2. 32x32 pixels
+3. 48x48 pixels
+
+Color Scheme:
+- Primary: #2563EB (Brand Blue)
+- Secondary: #64748B (Neutral Gray)
+- Contrast Ratio: 4.5:1 (WCAG 2.1 AA compliant)
+
+Image Format Details:
+- Format: ICO container with PNG compression
+- Bit Depth: 32-bit (24-bit color + 8-bit alpha)
+- Anti-aliasing: Enabled and optimized for small sizes
+- Compression: Optimized for web delivery
+
+Generated from vector source (logo.svg) with:
+- Sharp edges preserved at small sizes
+- Optimal anti-aliasing for legibility
+- Proper padding for browser display
+- Transparent background support
+
+Browser Support:
+- Chrome, Firefox, Safari, Edge (Desktop)
+- iOS Safari, Android Chrome (Mobile)
+- PWA/Touch icon compatibility
+
+Cache Control Headers:
+Cache-Control: public, max-age=2592000
+ETag: [File hash for versioning]
