@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "^0.104.0"  # High-performance async web framework
+uvicorn = "^0.24.0"  # ASGI server implementation
+pydantic = "^2.0.0"  # Data validation using Python type annotations
+neo4j = "^5.0.0"  # Neo4j database driver for graph operations
+networkx = "^3.1"  # Graph algorithms and analysis library
+grpcio = "^1.59.0"  # gRPC framework for service communication
+prometheus-client = "^0.17.0"  # Prometheus monitoring metrics integration
+opentelemetry-api = "^1.20.0"  # OpenTelemetry for distributed tracing
+
+[dev-packages]
+pytest = "^7.4.0"  # Testing framework
+pytest-asyncio = "^0.21.0"  # Async testing support
+black = "^23.9.0"  # Code formatting
+mypy = "^1.6.0"  # Static type checking
+
+[requires]
+python_version = "3.11"
+
+[scripts]
+start = "uvicorn main:app --host 0.0.0.0 --port 8000"
+test = "pytest"
+format = "black ."
+typecheck = "mypy ."
