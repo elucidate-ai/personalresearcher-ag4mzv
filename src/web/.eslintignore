@@ -1,0 +1,48 @@
+node_modules/**
+
+# Build outputs
+dist/**
+build/**
+
+# Test coverage
+coverage/**
+
+# Configuration files
+*.config.js
+.eslintrc.json
+
+# TypeScript definitions
+vite-env.d.ts
+**/*.d.ts
+
+# Source maps
+**/*.js.map
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache directories
+.cache/
+.temp/
+
+# Environment files
+.env*
+!.env.example
+
+# Temporary files
+*.log
+*.tmp
+
+# Package manager files
+yarn-error.log
+npm-debug.log
+
+# Generated assets
+public/assets/**
+src/assets/**/*.min.*
+
+# Documentation
+docs/**
