@@ -1,0 +1,154 @@
+# Output Generation Service Kubernetes Manifest
+# Version: 1.0
+# Dependencies: Kubernetes v1.28+, Node.js 20.x
+---
+# Deployment configuration for Output Generation service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: output-generation
+  namespace: knowledge-system
+  labels:
+    app: output-generation
+    component: document-generation
+    part-of: knowledge-aggregation-system
+    app.kubernetes.io/name: output-generation
+    app.kubernetes.io/component: document-generation
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "Output Generation service for document creation and export"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+spec:
+  replicas: 2  # Initial replica count with auto-scaling support
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: output-generation
+  template:
+    metadata:
+      labels:
+        app: output-generation
+        component: document-generation
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+        checksum/config: "${CONFIG_CHECKSUM}"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: output-generation
+          image: output-generation:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+            - name: metrics
+              containerPort: 3001
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "0.5"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OUTPUT_SERVICE_PORT
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: output-cache
+              mountPath: /cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: output-cache
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - output-generation
+                topologyKey: kubernetes.io/hostname
+---
+# Service configuration for Output Generation
+apiVersion: v1
+kind: Service
+metadata:
+  name: output-generation
+  namespace: knowledge-system
+  labels:
+    app: output-generation
+    component: document-generation
+    part-of: knowledge-aggregation-system
+  annotations:
+    description: "Output Generation service endpoint"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 3001
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app: output-generation
