@@ -1,0 +1,188 @@
+name: Comprehensive Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_ENV: test
+  PYTHON_ENV: test
+  MONGODB_URI: mongodb://localhost:27018
+  REDIS_URI: redis://localhost:6380
+  NEO4J_URI: bolt://localhost:7688
+  LOG_LEVEL: debug
+  TEST_TIMEOUT: 30000
+  PERFORMANCE_THRESHOLD: 1000
+  API_TIMEOUT: 5000
+  MAX_RETRIES: 3
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+        python-version: [3.11]
+      fail-fast: false
+      max-parallel: 4
+
+    services:
+      mongodb-test:
+        image: mongo:7.0
+        ports:
+          - 27018:27017
+        options: >-
+          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis-test:
+        image: redis:7.0-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      neo4j-test:
+        image: neo4j:5.0
+        ports:
+          - 7688:7687
+          - 7475:7474
+        env:
+          NEO4J_AUTH: neo4j/test-password
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p test-password 'RETURN 1;'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install Node.js dependencies
+        run: |
+          npm ci
+          npm install -g jest typescript ts-node
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv install --dev
+
+      - name: Start test containers
+        run: |
+          docker-compose -f src/test/docker-compose.test.yml up -d
+          sleep 30  # Wait for containers to be healthy
+
+      - name: Run security scans
+        uses: snyk/actions/node@v3
+        with:
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run TypeScript/Node.js unit tests
+        run: |
+          jest --config src/test/jest.config.ts \
+            --coverage \
+            --coverageThreshold='{"global":{"branches":85,"functions":90,"lines":90,"statements":90}}'
+
+      - name: Run Python unit tests
+        run: |
+          pytest unit/ \
+            --cov=src/backend \
+            --cov-report=xml \
+            --cov-fail-under=90
+
+      - name: Run integration tests
+        run: |
+          pytest integration/ \
+            --cov=src/backend \
+            --cov-append \
+            --cov-report=xml
+
+      - name: Run API contract tests
+        run: |
+          pytest api/ \
+            --cov=src/backend \
+            --cov-append \
+            --cov-report=xml
+
+      - name: Run performance tests
+        run: |
+          pytest performance/ \
+            --performance-threshold=1000 \
+            --cov=src/backend \
+            --cov-append \
+            --cov-report=xml
+
+      - name: Run end-to-end tests
+        run: |
+          pytest e2e/ \
+            --cov=src/backend \
+            --cov-append \
+            --cov-report=xml
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            junit.xml
+            coverage.xml
+
+      - name: Stop test containers
+        if: always()
+        run: docker-compose -f src/test/docker-compose.test.yml down
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          docker system prune -f
+          rm -rf .pytest_cache coverage .coverage
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
