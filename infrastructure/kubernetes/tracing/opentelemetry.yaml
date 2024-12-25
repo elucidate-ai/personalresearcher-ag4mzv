@@ -1,0 +1,164 @@
+# OpenTelemetry Collector Configuration for Production Environment
+# Version: 0.86.0
+# Purpose: Define highly available OpenTelemetry collector deployment with secure telemetry collection
+
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: monitoring
+  labels:
+    app: opentelemetry
+    component: collector
+    version: 0.86.0
+    part-of: observability
+    managed-by: opentelemetry-operator
+  annotations:
+    description: "Production OpenTelemetry Collector for distributed tracing"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8889"
+spec:
+  # High availability deployment mode
+  mode: deployment
+  replicas: 2
+
+  # Pod disruption budget for availability
+  podDisruptionBudget:
+    minAvailable: 1
+
+  # Resource allocation and limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 200m
+      memory: 400Mi
+
+  # Affinity rules for high availability
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: opentelemetry
+          topologyKey: kubernetes.io/hostname
+
+  # Configuration for the OpenTelemetry collector
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+            tls:
+              enabled: true
+              cert_file: /etc/certs/tls.crt
+              key_file: /etc/certs/tls.key
+          http:
+            endpoint: "0.0.0.0:4318"
+            tls:
+              enabled: true
+              cert_file: /etc/certs/tls.crt
+              key_file: /etc/certs/tls.key
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 1536
+        spike_limit_mib: 512
+      resourcedetection:
+        detectors: [env, system, kubernetes]
+        timeout: 10s
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: KUBERNETES_NODE_NAME
+
+    exporters:
+      jaeger:
+        endpoint: jaeger-collector.monitoring:14250
+        tls:
+          insecure: false
+          ca_file: /etc/certs/ca.crt
+          cert_file: /etc/certs/tls.crt
+          key_file: /etc/certs/tls.key
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: opentelemetry
+        const_labels:
+          collector_version: "0.86.0"
+          deployment_environment: "production"
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, k8sattributes, batch]
+          exporters: [jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, k8sattributes, batch]
+          exporters: [prometheus]
+      
+      telemetry:
+        logs:
+          level: info
+          development: false
+          encoding: json
+        metrics:
+          level: detailed
+          address: "0.0.0.0:8888"
+
+  # Volume mounts for certificates
+  volumeMounts:
+    - name: otel-collector-tls
+      mountPath: /etc/certs
+      readOnly: true
+
+  # Volumes definition
+  volumes:
+    - name: otel-collector-tls
+      secret:
+        secretName: otel-collector-tls
+        defaultMode: 420
+
+---
+# Service definition for the collector
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: monitoring
+  labels:
+    app: opentelemetry
+    component: collector
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
+    - name: telemetry
+      port: 8888
+      targetPort: 8888
+      protocol: TCP
+  selector:
+    app: opentelemetry
+    component: collector
