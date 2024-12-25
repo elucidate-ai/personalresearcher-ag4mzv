@@ -1,0 +1,126 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "e2a8a78aaf9c1e11c2f8f8f87d5e8d0b8e5f4c6e9b7c2f2e9b9b9b9b9b9b9b9b"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.11"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "fastapi": {
+            "hashes": [
+                "sha256:752dc31160cdbd0184bb8fe91567d84980c0d5d3c8d1f6b11e5c8e58f3731cc9",
+                "sha256:e5e4540a7c5e1dcfbbcf5b903c234feddcdcd881f191977a1c5dfd917487e7ae"
+            ],
+            "index": "pypi",
+            "version": "==0.104.0"
+        },
+        "uvicorn": {
+            "hashes": [
+                "sha256:09c8e5a79dc466bdf28dead50093957db184de356fcdc48697bad3bde4c2588e",
+                "sha256:7c84fea70c619d4a710153482c0d230929af7bcf76c7bfa6de151f0a3a80121e"
+            ],
+            "index": "pypi",
+            "version": "==0.24.0"
+        },
+        "pydantic": {
+            "hashes": [
+                "sha256:b3ef57c62535b0941697cce638c08900d87fcb67e29cfa99e8a68f747f393f7c",
+                "sha256:d0caf5954bee831b6bfe7e338c32b9e30c85dfe080c843680783ac2b631673b4"
+            ],
+            "index": "pypi",
+            "version": "==2.0.0"
+        },
+        "neo4j": {
+            "hashes": [
+                "sha256:3d5c5d120e63e48e3c4e08b7c1df0d02b9ed8b97517d651c4e431b2a4d2637c9",
+                "sha256:f5cce6c5f7b2b84c1e2c1f17b3f15d4b4f6dce95c4f1c5a6c47c0b1bc3a7d8f8"
+            ],
+            "index": "pypi",
+            "version": "==5.0.0"
+        },
+        "networkx": {
+            "hashes": [
+                "sha256:4f33f68cb2afcf86f28a45f43efc27a9386b535d567d2127f8f61d51dec58d36",
+                "sha256:de346335408f84de0eada6ff9fafafff9bcda11f0a0dfaa931133debb146ab61"
+            ],
+            "index": "pypi",
+            "version": "==3.1"
+        },
+        "grpcio": {
+            "hashes": [
+                "sha256:0ae444221b2c16d8211b55326f8ba173ba8f8c76349bfc1768198ba592b58f74",
+                "sha256:0b84445fa94d59e6806c10266b977f92fa997db3585f125d6b751af02ff8b9fe"
+            ],
+            "index": "pypi",
+            "version": "==1.59.0"
+        },
+        "prometheus-client": {
+            "hashes": [
+                "sha256:0836af6eb2c8f4fed712b2f279f6c0a8bbab29f9f4aa15276b91c7cb0d1616ab",
+                "sha256:a03e35b359f14dd1630898543e2120addfdeacd1a6069c1367ae90fd93ad3f48"
+            ],
+            "index": "pypi",
+            "version": "==0.17.0"
+        },
+        "opentelemetry-api": {
+            "hashes": [
+                "sha256:1a10147d4fbc2c2536b4648aa33c1927c7a41a5f85de8020bbb3f25f2a403144",
+                "sha256:f93af845a686b4ff41f9f7e6c5f8e8d31f82fad96527c6c1e3ffcf30e5f35c88"
+            ],
+            "index": "pypi",
+            "version": "==1.20.0"
+        },
+        "prometheus-fastapi-instrumentator": {
+            "hashes": [
+                "sha256:4940c7c1a27a8c9bf7d2c74f661d1f8bed7d5e63c9e0c2c3f0437b1c6a7b2a8d",
+                "sha256:d1b047b9d19a48c2da4c3c9c609c93b9ed15e4b41a9ebb11b7d0d65f0c65a50a"
+            ],
+            "index": "pypi",
+            "version": "==6.1.0"
+        }
+    },
+    "develop": {
+        "pytest": {
+            "hashes": [
+                "sha256:78bf16451a2eb8c7a2ea98e32dc119fd2aa758f1d5d66dbf0a59d69a3969df32",
+                "sha256:b4bf8c45bd59934ed84001ad51e11b4ee40d40a1229d2c79f9c592b0a3f6bd8a"
+            ],
+            "index": "pypi",
+            "version": "==7.4.0"
+        },
+        "pytest-asyncio": {
+            "hashes": [
+                "sha256:40a7eae6dded22c7b604986855ea48400ab15b069ae38116e8c01238e9eeb64d",
+                "sha256:8666c1c8ac02631d7c51ba282e0c69a8a452b211ffedf2599099845da5c5c37b"
+            ],
+            "index": "pypi",
+            "version": "==0.21.0"
+        },
+        "black": {
+            "hashes": [
+                "sha256:0e232f24a337fed7a82c1185ae46c56c4a6167fb0fe37411b43e876892c76699",
+                "sha256:fc503d066c9c8f20f83f2983b14e1595062ae21f072e94366c56309042f6d099"
+            ],
+            "index": "pypi",
+            "version": "==23.9.0"
+        },
+        "mypy": {
+            "hashes": [
+                "sha256:19f905bcfd9e167159b3d63ecd8cb5e696151c3e59a1742e79bc3bcb540c42c7",
+                "sha256:d1eb1e0e0c9fc0931fc5fad7f3776a20ea20b79b7e8dfce8031e1d7adbd0d724"
+            ],
+            "index": "pypi",
+            "version": "==1.6.0"
+        }
+    }
+}
