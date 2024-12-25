@@ -1,0 +1,152 @@
+# Production Overlay Kustomization Configuration
+# Version: 1.0
+# Dependencies: Kubernetes v1.28+, Kustomize v5.0.0
+# Purpose: Production-specific customizations with enhanced HA, security, and monitoring
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base resources to be customized
+resources:
+- ../../base/namespace.yaml
+- ../../base/configmap.yaml
+- ../../base/monitoring.yaml
+- ../../base/network.yaml
+- ../../base/rbac.yaml
+- ../../base/storage.yaml
+- ../../apps/api-gateway.yaml
+- ../../apps/content-discovery.yaml
+- ../../apps/knowledge-organization.yaml
+- ../../apps/output-generation.yaml
+- ../../apps/vector-service.yaml
+- ../../apps/web.yaml
+- ../../apps/ingress.yaml
+- ../../apps/hpa.yaml
+- ../../apps/pdb.yaml
+
+# Production namespace
+namespace: knowledge-system-prod
+
+# Common labels for all resources
+commonLabels:
+  environment: production
+  managed-by: kustomize
+  region: multi-region
+  tier: production
+
+# Common annotations for all resources
+commonAnnotations:
+  maintainer: devops-team
+  environment: production
+  backup-policy: enabled
+  monitoring: enhanced
+  security-level: high
+
+# Production-specific patches
+patches:
+# API Gateway production configuration
+- target:
+    kind: Deployment
+    name: api-gateway
+  patch: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-gateway
+    spec:
+      replicas: 3
+      template:
+        spec:
+          containers:
+          - name: api-gateway
+            resources:
+              requests:
+                cpu: "1"
+                memory: "2Gi"
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+            livenessProbe:
+              initialDelaySeconds: 30
+              periodSeconds: 10
+            readinessProbe:
+              initialDelaySeconds: 20
+              periodSeconds: 5
+          topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: api-gateway
+
+# Production ConfigMap generator
+configMapGenerator:
+- name: app-config
+  behavior: merge
+  literals:
+  - ENVIRONMENT=production
+  - LOG_LEVEL=info
+  - API_RATE_LIMIT=1000
+  - API_RATE_WINDOW=3600
+  - PROMETHEUS_RETENTION=30d
+  - BACKUP_ENABLED=true
+  - MULTI_REGION_ENABLED=true
+  - SECURITY_POLICY=strict
+
+# Production image tags
+images:
+- name: api-gateway
+  newTag: stable
+- name: content-discovery
+  newTag: stable
+- name: vector-service
+  newTag: stable
+- name: knowledge-organization
+  newTag: stable
+- name: output-generation
+  newTag: stable
+- name: web
+  newTag: stable
+
+# Resource transformers for consistent production configuration
+configurations:
+- namePrefix: prod-
+  commonLabels:
+    environment: production
+
+# Replicas configuration for high availability
+replicas:
+- name: api-gateway
+  count: 3
+- name: content-discovery
+  count: 3
+- name: vector-service
+  count: 3
+- name: knowledge-organization
+  count: 3
+- name: output-generation
+  count: 3
+- name: web
+  count: 3
+
+# Strategic merge patches for enhanced security
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: api-gateway
+  spec:
+    template:
+      metadata:
+        annotations:
+          security.kubernetes.io/enhanced: "true"
+          backup.kubernetes.io/enabled: "true"
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          fsGroup: 2000
+          seccompProfile:
+            type: RuntimeDefault
