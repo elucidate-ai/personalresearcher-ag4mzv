@@ -1,0 +1,139 @@
+# Kubernetes SecurityContext Configuration v1
+# Purpose: Define secure container runtime configurations for knowledge aggregation system
+# Dependencies: k8s.io/api/core/v1 v1.28+
+# References: PodSecurityPolicy baseline requirements
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-contexts
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+  annotations:
+    description: "Security context configurations for knowledge system workloads"
+    security.kubernetes.io/last-updated: "2023-11-01"
+    compliance.kubernetes.io/standard: "CIS-Benchmark-1.7"
+
+data:
+  # Default security context for general workloads
+  default-security-context: |
+    spec:
+      # Enforce non-root user execution
+      runAsNonRoot: true
+      runAsUser: 1000  # DEFAULT_USER_ID
+      runAsGroup: 3000 # DEFAULT_GROUP_ID
+      fsGroup: 3000
+      
+      # Prevent privilege escalation
+      allowPrivilegeEscalation: false
+      
+      # Drop all capabilities and add none
+      capabilities:
+        drop: ["ALL"]
+        add: []
+      
+      # Enforce read-only root filesystem
+      readOnlyRootFilesystem: true
+      
+      # Use default runtime security profile
+      seccompProfile:
+        type: "RuntimeDefault"
+      
+      # SELinux configuration
+      seLinuxOptions:
+        type: "container_t"
+        level: "s0:c123,c456"
+      
+      # Additional security controls  
+      sysctls: []
+      supplementalGroups: [3000]
+
+  # System-level security context for privileged workloads
+  system-security-context: |
+    spec:
+      # Allow root for system services
+      runAsNonRoot: false
+      runAsUser: 0
+      
+      # Required for system operations
+      allowPrivilegeEscalation: true
+      
+      # Minimal required capabilities
+      capabilities:
+        drop: ["ALL"]
+        add: ["NET_ADMIN", "SYS_ADMIN"]
+      
+      # System services may need write access
+      readOnlyRootFilesystem: false
+      
+      # Use default runtime security profile
+      seccompProfile:
+        type: "RuntimeDefault"
+      
+      # System-level SELinux context
+      seLinuxOptions:
+        type: "system_u:system_r:container_t"
+        level: "s0"
+      
+      # Required system controls
+      sysctls:
+        - name: "net.ipv4.ip_forward"
+          value: "1"
+
+---
+# Service-specific security context overrides
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-security-contexts
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation
+    security.kubernetes.io/enforced: "true"
+data:
+  # API Gateway security context
+  api-gateway-security-context: |
+    spec:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 3000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        add: []
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: "RuntimeDefault"
+
+  # Vector Service security context (GPU workload)
+  vector-service-security-context: |
+    spec:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 3000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        add: ["SYS_ADMIN"] # Required for GPU access
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: "RuntimeDefault"
+      
+  # Content Discovery security context
+  content-discovery-security-context: |
+    spec:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 3000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        add: []
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: "RuntimeDefault"
