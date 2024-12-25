@@ -1,0 +1,155 @@
+{
+  "mockTopics": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Machine Learning Fundamentals",
+      "description": "Core concepts and principles of machine learning, including supervised and unsupervised learning approaches, model evaluation, and practical applications.",
+      "relevance_score": 0.95,
+      "metadata": {
+        "domain": "computer-science",
+        "source": "academic-research",
+        "language": "en",
+        "difficulty_level": "intermediate",
+        "tags": ["AI", "algorithms", "data-science"],
+        "quality_metrics": {
+          "content_coverage": 0.92,
+          "source_reliability": 0.95,
+          "information_freshness": 0.88,
+          "citation_score": 0.90
+        }
+      },
+      "related_topics": [
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440001",
+          "type": "prerequisite",
+          "strength": 0.85,
+          "created_at": "2023-01-15T08:00:00Z"
+        },
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440002",
+          "type": "extension",
+          "strength": 0.75,
+          "created_at": "2023-01-15T08:00:00Z"
+        }
+      ],
+      "created_at": "2023-01-15T08:00:00Z",
+      "updated_at": "2023-01-15T08:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Statistics and Probability",
+      "description": "Essential statistical concepts and probability theory required for understanding machine learning algorithms and data analysis.",
+      "relevance_score": 0.92,
+      "metadata": {
+        "domain": "mathematics",
+        "source": "academic-research",
+        "language": "en",
+        "difficulty_level": "intermediate",
+        "tags": ["statistics", "probability", "mathematics"],
+        "quality_metrics": {
+          "content_coverage": 0.90,
+          "source_reliability": 0.93,
+          "information_freshness": 0.85,
+          "citation_score": 0.92
+        }
+      },
+      "related_topics": [
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440000",
+          "type": "extension",
+          "strength": 0.85,
+          "created_at": "2023-01-15T08:00:00Z"
+        }
+      ],
+      "created_at": "2023-01-15T08:00:00Z",
+      "updated_at": "2023-01-15T08:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "name": "Deep Learning",
+      "description": "Advanced neural network architectures and deep learning techniques, including CNNs, RNNs, and transformer models.",
+      "relevance_score": 0.93,
+      "metadata": {
+        "domain": "computer-science",
+        "source": "academic-research",
+        "language": "en",
+        "difficulty_level": "advanced",
+        "tags": ["neural-networks", "AI", "deep-learning"],
+        "quality_metrics": {
+          "content_coverage": 0.94,
+          "source_reliability": 0.92,
+          "information_freshness": 0.96,
+          "citation_score": 0.91
+        }
+      },
+      "related_topics": [
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440000",
+          "type": "prerequisite",
+          "strength": 0.75,
+          "created_at": "2023-01-15T08:00:00Z"
+        }
+      ],
+      "created_at": "2023-01-15T08:00:00Z",
+      "updated_at": "2023-01-15T08:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "name": "Natural Language Processing",
+      "description": "Text processing, language understanding, and generation techniques using machine learning and deep learning approaches.",
+      "relevance_score": 0.91,
+      "metadata": {
+        "domain": "computer-science",
+        "source": "academic-research",
+        "language": "en",
+        "difficulty_level": "advanced",
+        "tags": ["NLP", "AI", "text-processing"],
+        "quality_metrics": {
+          "content_coverage": 0.89,
+          "source_reliability": 0.90,
+          "information_freshness": 0.94,
+          "citation_score": 0.88
+        }
+      },
+      "related_topics": [
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440002",
+          "type": "related",
+          "strength": 0.80,
+          "created_at": "2023-01-15T08:00:00Z"
+        }
+      ],
+      "created_at": "2023-01-15T08:00:00Z",
+      "updated_at": "2023-01-15T08:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440004",
+      "name": "Computer Vision",
+      "description": "Image processing and visual understanding using machine learning and deep learning techniques.",
+      "relevance_score": 0.90,
+      "metadata": {
+        "domain": "computer-science",
+        "source": "academic-research",
+        "language": "en",
+        "difficulty_level": "advanced",
+        "tags": ["vision", "AI", "image-processing"],
+        "quality_metrics": {
+          "content_coverage": 0.91,
+          "source_reliability": 0.89,
+          "information_freshness": 0.93,
+          "citation_score": 0.87
+        }
+      },
+      "related_topics": [
+        {
+          "topic_id": "550e8400-e29b-41d4-a716-446655440002",
+          "type": "related",
+          "strength": 0.82,
+          "created_at": "2023-01-15T08:00:00Z"
+        }
+      ],
+      "created_at": "2023-01-15T08:00:00Z",
+      "updated_at": "2023-01-15T08:00:00Z"
+    }
+  ]
+}
