@@ -1,0 +1,125 @@
+# =====================================
+# Builder Stage
+# =====================================
+FROM python:3.11-slim AS builder
+
+# Set build arguments and labels
+ARG BUILD_DATE
+ARG VCS_REF
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.name="content-discovery-service" \
+      org.label-schema.description="Content Discovery Service for AI-powered knowledge aggregation"
+
+# Set environment variables for build
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIPENV_VENV_IN_PROJECT=1
+
+# Install system build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pipenv with specific version
+RUN pip install --no-cache-dir pipenv==2023.10.3
+
+# Set working directory
+WORKDIR /build
+
+# Copy dependency files
+COPY content-discovery/Pipfile content-discovery/Pipfile.lock ./
+
+# Install dependencies in virtual environment
+RUN pipenv install --deploy --ignore-pipfile --dev && \
+    pipenv run pip install --no-cache-dir uvicorn[standard] gunicorn
+
+# Create optimized virtual environment
+RUN pipenv run python -m compileall -q . && \
+    find /build/.venv -name __pycache__ -type d -exec rm -r {} +
+
+# =====================================
+# Runtime Stage
+# =====================================
+FROM python:3.11-slim
+
+# Set runtime environment variables
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHON_ENV=production \
+    TZ=UTC \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    tini \
+    && rm -rf /var/lib/apt/lists/* && \
+    groupadd -r nonroot && \
+    useradd -r -g nonroot -s /sbin/nologin nonroot
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /build/.venv /app/.venv
+
+# Copy application code
+COPY --chown=nonroot:nonroot content-discovery/app ./app
+COPY --chown=nonroot:nonroot content-discovery/main.py .
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/data /tmp/content-discovery && \
+    chown -R nonroot:nonroot /app/data /tmp/content-discovery && \
+    chmod 755 /app/data /tmp/content-discovery
+
+# Set resource limits
+RUN ulimit -n 65536 && \
+    ulimit -u 256
+
+# Switch to non-root user
+USER nonroot
+
+# Expose port
+EXPOSE 8000/tcp
+
+# Set volume mount points
+VOLUME ["/app/data", "/tmp"]
+
+# Configure healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Set entrypoint with Tini for proper signal handling
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Set default command with optimized Gunicorn settings
+CMD ["/app/.venv/bin/gunicorn", \
+     "--bind", "0.0.0.0:8000", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--workers", "2", \
+     "--threads", "4", \
+     "--timeout", "120", \
+     "--keep-alive", "5", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "50", \
+     "--graceful-timeout", "30", \
+     "--log-level", "info", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "main:app"]
+
+# Set security options
+SECURITY_OPT="no-new-privileges:true"
+SECURITY_OPT="seccomp=unconfined"
+SECURITY_OPT="apparmor=unconfined"
+
+# Drop all capabilities except necessary ones
+DROP_CAPS="ALL"
+ADD_CAPS="NET_BIND_SERVICE"
