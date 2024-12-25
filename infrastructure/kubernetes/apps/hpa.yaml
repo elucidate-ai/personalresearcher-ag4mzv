@@ -1,0 +1,129 @@
+# Horizontal Pod Autoscaler Configuration v1.0
+# Dependencies: Kubernetes v1.28+, Prometheus Operator v0.68.0
+# Purpose: Manage automated scaling of core services based on resource utilization
+
+---
+# API Gateway HPA Configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: knowledge-system
+  labels:
+    app: api-gateway
+    component: autoscaler
+    tier: frontend
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: api-gateway
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    scaling.policy: "aggressive"
+    monitoring.alert: "true"
+    description: "Autoscaling configuration for API Gateway service"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 3  # Ensures high availability
+  maxReplicas: 10 # Maximum scaling capacity
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Quick scale up
+      policies:
+      - type: Pods
+        value: 2  # Add up to 2 pods at a time
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Conservative scale down
+
+---
+# Content Discovery Service HPA Configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: content-discovery-hpa
+  namespace: knowledge-system
+  labels:
+    app: content-discovery
+    component: autoscaler
+    tier: backend
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: content-discovery
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    scaling.policy: "moderate"
+    monitoring.alert: "true"
+    description: "Autoscaling configuration for Content Discovery service"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: content-discovery
+  minReplicas: 2  # Minimum for redundancy
+  maxReplicas: 8  # Maximum based on load patterns
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120  # Moderate scale up
+      policies:
+      - type: Pods
+        value: 1  # Add 1 pod at a time
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Conservative scale down
+
+---
+# Vector Service HPA Configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: vector-service-hpa
+  namespace: knowledge-system
+  labels:
+    app: vector-service
+    component: autoscaler
+    tier: backend
+    app.kubernetes.io/name: knowledge-system
+    app.kubernetes.io/component: vector-service
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    scaling.policy: "conservative"
+    monitoring.alert: "true"
+    description: "Autoscaling configuration for Vector Service"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vector-service
+  minReplicas: 2  # Minimum for redundancy
+  maxReplicas: 6  # Limited due to resource intensity
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 180  # Conservative scale up
+      policies:
+      - type: Pods
+        value: 1  # Add 1 pod at a time
+        periodSeconds: 120
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Conservative scale down
