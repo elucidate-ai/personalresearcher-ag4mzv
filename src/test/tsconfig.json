@@ -1,0 +1,63 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "declaration": false,
+    "allowJs": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "incremental": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@test/*": ["./utils/*", "./mocks/*", "./fixtures/*"],
+      "@utils/*": ["./utils/*"],
+      "@mocks/*": ["./mocks/*"],
+      "@fixtures/*": ["./fixtures/*"],
+      "@vectors/*": ["./vectors/*"],
+      "@knowledge/*": ["./knowledge/*"],
+      "@content/*": ["./content/*"]
+    },
+    "types": [
+      "jest",
+      "@testing-library/jest-dom",
+      "node",
+      "@types/testing-library__jest-dom"
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.json",
+    "**/__tests__/**/*",
+    "**/__mocks__/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    ".jest",
+    "**/*.spec.js"
+  ]
+}
