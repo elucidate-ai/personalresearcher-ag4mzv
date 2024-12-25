@@ -1,0 +1,39 @@
+# Grafana Dashboard Provisioning Configuration v9.5.3
+# Configures automatic dashboard loading and organization for system metrics, 
+# API performance, and business KPI visualization
+
+apiVersion: 1
+
+providers:
+  # System Metrics Dashboards Provider
+  - name: system-dashboards
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
+    folder: System Metrics
+
+  # API Performance Dashboards Provider
+  - name: api-dashboards
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
+    folder: API Performance
+
+  # Business KPIs Dashboards Provider
+  - name: business-dashboards
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
+    folder: Business KPIs
