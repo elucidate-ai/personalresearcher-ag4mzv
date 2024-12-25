@@ -1,0 +1,191 @@
+# Prometheus Rules Configuration v2.45.0
+# Purpose: Defines comprehensive monitoring rules for the knowledge aggregation system
+# Referenced by: prometheus-config ConfigMap
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: knowledge-aggregation-system
+    app.kubernetes.io/component: monitoring
+data:
+  # System Resource Rules
+  system.rules.yml: |
+    groups:
+      - name: node.rules
+        rules:
+          # CPU Usage Rules
+          - alert: HighCPUUsage
+            expr: instance:node_cpu_utilization:avg > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              category: resource
+            annotations:
+              summary: "High CPU usage on {{$labels.instance}}"
+              description: "CPU utilization above 85% for 5 minutes"
+              runbook_url: "runbooks/high-cpu-usage"
+
+          - alert: CriticalCPUUsage
+            expr: instance:node_cpu_utilization:avg > 0.95
+            for: 5m
+            labels:
+              severity: critical
+              category: resource
+            annotations:
+              summary: "Critical CPU usage on {{$labels.instance}}"
+              description: "CPU utilization above 95% for 5 minutes"
+              runbook_url: "runbooks/critical-cpu-usage"
+
+          # Memory Usage Rules
+          - alert: HighMemoryUsage
+            expr: instance:node_memory_utilization:avg > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              category: resource
+            annotations:
+              summary: "High memory usage on {{$labels.instance}}"
+              description: "Memory utilization above 85% for 5 minutes"
+              runbook_url: "runbooks/high-memory-usage"
+
+  # API Service Rules
+  api.rules.yml: |
+    groups:
+      - name: api.rules
+        rules:
+          # Error Rate Rules
+          - alert: HighErrorRate
+            expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              category: availability
+            annotations:
+              summary: "High API error rate detected"
+              description: "Error rate exceeds 5% over 5 minutes"
+              runbook_url: "runbooks/high-error-rate"
+
+          # Latency Rules
+          - alert: SlowAPIResponses
+            expr: http_request_duration_seconds{quantile="0.95"} > 2
+            for: 5m
+            labels:
+              severity: warning
+              category: performance
+            annotations:
+              summary: "Slow API responses detected"
+              description: "95th percentile of API response time exceeds 2 seconds"
+              runbook_url: "runbooks/slow-api-responses"
+
+  # Vector Processing Rules
+  vector.rules.yml: |
+    groups:
+      - name: vector.rules
+        rules:
+          # Vector Processing Performance
+          - alert: SlowVectorProcessing
+            expr: vector_processing_duration_seconds > 1
+            for: 5m
+            labels:
+              severity: warning
+              category: performance
+            annotations:
+              summary: "Slow vector processing detected"
+              description: "Vector processing time exceeds 1 second"
+              runbook_url: "runbooks/slow-vector-processing"
+
+          # Vector Database Health
+          - alert: VectorDBConnectionErrors
+            expr: rate(vector_db_connection_errors_total[5m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+              category: availability
+            annotations:
+              summary: "Vector database connection errors detected"
+              description: "Connection errors to vector database occurring"
+              runbook_url: "runbooks/vector-db-connection-errors"
+
+  # Content Processing Rules
+  content.rules.yml: |
+    groups:
+      - name: content.rules
+        rules:
+          # Content Processing Queue
+          - alert: LargeProcessingQueue
+            expr: content_processing_queue_size > 1000
+            for: 5m
+            labels:
+              severity: warning
+              category: performance
+            annotations:
+              summary: "Large content processing queue"
+              description: "Content processing queue exceeds 1000 items"
+              runbook_url: "runbooks/large-processing-queue"
+
+          # Content Quality Metrics
+          - record: content:quality_score:avg
+            expr: avg(content_quality_score) by (content_type)
+
+          # Processing Success Rate
+          - alert: LowProcessingSuccess
+            expr: sum(rate(content_processing_success_total[5m])) / sum(rate(content_processing_total[5m])) < 0.95
+            for: 5m
+            labels:
+              severity: warning
+              category: quality
+            annotations:
+              summary: "Low content processing success rate"
+              description: "Content processing success rate below 95%"
+              runbook_url: "runbooks/low-processing-success"
+
+          # Knowledge Graph Health
+          - alert: KnowledgeGraphInconsistency
+            expr: knowledge_graph_consistency_check_failed > 0
+            for: 5m
+            labels:
+              severity: critical
+              category: data_integrity
+            annotations:
+              summary: "Knowledge graph inconsistency detected"
+              description: "Knowledge graph consistency check failing"
+              runbook_url: "runbooks/knowledge-graph-inconsistency"
+
+  # Business Metrics Rules
+  business.rules.yml: |
+    groups:
+      - name: business.rules
+        rules:
+          # User Satisfaction Metrics
+          - record: user:satisfaction:ratio
+            expr: sum(user_satisfaction_score) / count(user_satisfaction_score)
+
+          # Content Coverage
+          - alert: LowTopicCoverage
+            expr: topic_coverage_ratio < 0.9
+            for: 15m
+            labels:
+              severity: warning
+              category: quality
+            annotations:
+              summary: "Low topic coverage detected"
+              description: "Topic coverage ratio below 90%"
+              runbook_url: "runbooks/low-topic-coverage"
+
+          # System Availability
+          - record: system:availability:ratio
+            expr: avg_over_time(up{job="knowledge-system"}[24h])
+
+          - alert: SystemAvailabilityLow
+            expr: system:availability:ratio < 0.999
+            for: 1h
+            labels:
+              severity: critical
+              category: sla
+            annotations:
+              summary: "System availability below SLA"
+              description: "System availability below 99.9% over 1 hour"
+              runbook_url: "runbooks/system-availability-low"
