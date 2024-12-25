@@ -1,0 +1,102 @@
+{
+  "TEST_USERS": [
+    {
+      "id": "test-anonymous-user-001",
+      "email": "anonymous@example.test",
+      "firstName": "Anonymous",
+      "lastName": "User",
+      "role": "ANONYMOUS",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastLoginAt": "2024-01-01T00:00:00.000Z",
+      "lastActivityAt": "2024-01-01T00:00:00.000Z",
+      "mfaEnabled": false,
+      "permissions": [
+        "read:public"
+      ]
+    },
+    {
+      "id": "test-basic-user-001", 
+      "email": "basic@example.test",
+      "firstName": "Basic",
+      "lastName": "User",
+      "role": "BASIC_USER",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastLoginAt": "2024-01-01T12:00:00.000Z",
+      "lastActivityAt": "2024-01-01T12:30:00.000Z",
+      "mfaEnabled": false,
+      "permissions": [
+        "read:content",
+        "read:public",
+        "search:basic"
+      ]
+    },
+    {
+      "id": "test-premium-user-001",
+      "email": "premium@example.test",
+      "firstName": "Premium",
+      "lastName": "User",
+      "role": "PREMIUM_USER",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastLoginAt": "2024-01-01T13:00:00.000Z",
+      "lastActivityAt": "2024-01-01T13:45:00.000Z",
+      "mfaEnabled": true,
+      "permissions": [
+        "read:content",
+        "read:public",
+        "read:premium",
+        "search:basic",
+        "search:advanced",
+        "export:basic"
+      ]
+    },
+    {
+      "id": "test-content-manager-001",
+      "email": "manager@example.test",
+      "firstName": "Content",
+      "lastName": "Manager",
+      "role": "CONTENT_MANAGER",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastLoginAt": "2024-01-01T14:00:00.000Z",
+      "lastActivityAt": "2024-01-01T14:30:00.000Z",
+      "mfaEnabled": true,
+      "permissions": [
+        "read:content",
+        "read:public",
+        "read:premium",
+        "write:content",
+        "delete:content",
+        "search:basic",
+        "search:advanced",
+        "export:basic",
+        "export:advanced",
+        "manage:content"
+      ]
+    },
+    {
+      "id": "test-admin-user-001",
+      "email": "admin@example.test",
+      "firstName": "Admin",
+      "lastName": "User",
+      "role": "ADMINISTRATOR",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastLoginAt": "2024-01-01T15:00:00.000Z",
+      "lastActivityAt": "2024-01-01T15:30:00.000Z",
+      "mfaEnabled": true,
+      "permissions": [
+        "read:content",
+        "read:public",
+        "read:premium",
+        "write:content",
+        "delete:content",
+        "search:basic",
+        "search:advanced",
+        "export:basic",
+        "export:advanced",
+        "manage:content",
+        "manage:users",
+        "manage:system",
+        "admin:all"
+      ]
+    }
+  ]
+}
