@@ -1,0 +1,165 @@
+# Vector Service Kubernetes Deployment Configuration v1.0
+# Dependencies: Kubernetes v1.28+, Prometheus Operator v0.68.0
+# Purpose: Deploy and manage vector service with high availability and performance optimizations
+
+---
+# Service definition for vector-service
+apiVersion: v1
+kind: Service
+metadata:
+  name: vector-service
+  namespace: knowledge-system
+  labels:
+    app: vector-service
+    component: core
+    tier: backend
+    app.kubernetes.io/name: vector-service
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+    service.kubernetes.io/description: "Vector service for embeddings management and similarity search"
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: vector-service
+
+---
+# Deployment definition for vector-service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vector-service
+  namespace: knowledge-system
+  labels:
+    app: vector-service
+    component: core
+    tier: backend
+    app.kubernetes.io/name: vector-service
+    app.kubernetes.io/part-of: knowledge-aggregation
+  annotations:
+    deployment.kubernetes.io/description: "Vector service deployment for managing embeddings and similarity search"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: vector-service
+  template:
+    metadata:
+      labels:
+        app: vector-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        checksum/config: "${CONFIG_CHECKSUM}"
+    spec:
+      containers:
+        - name: vector-service
+          image: vector-service:${VERSION}
+          imagePullPolicy: Always
+          ports:
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: vector-service-secrets
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - vector-service
+                topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+      tolerations:
+        - key: "node.kubernetes.io/memory-pressure"
+          operator: "Exists"
+          effect: "NoSchedule"
+      terminationGracePeriodSeconds: 60
