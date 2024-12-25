@@ -1,0 +1,85 @@
+# Kibana Configuration File
+# Version: 8.9.0
+# Purpose: Production configuration for knowledge aggregation system's log visualization interface
+
+#-------------------------- Server Configuration --------------------------
+server.name: knowledge-aggregation-kibana
+server.host: "0.0.0.0"
+server.port: 5601
+server.basePath: "/kibana"
+server.rewriteBasePath: true
+server.maxPayloadBytes: 5242880
+server.compression.enabled: true
+
+# SSL Configuration
+server.ssl.enabled: true
+server.ssl.certificate: ${KIBANA_SSL_CERTIFICATE}
+server.ssl.key: ${KIBANA_SSL_KEY}
+
+#-------------------------- Elasticsearch Configuration --------------------------
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: ${ELASTICSEARCH_USERNAME}
+elasticsearch.password: ${ELASTICSEARCH_PASSWORD}
+
+# Elasticsearch SSL Configuration
+elasticsearch.ssl.verificationMode: full
+elasticsearch.ssl.certificate: ${ELASTICSEARCH_SSL_CERTIFICATE}
+elasticsearch.ssl.key: ${ELASTICSEARCH_SSL_KEY}
+
+# Elasticsearch Timeouts
+elasticsearch.requestTimeout: 60000
+elasticsearch.shardTimeout: 60000
+elasticsearch.pingTimeout: 30000
+elasticsearch.startupTimeout: 5000
+
+#-------------------------- Monitoring Configuration --------------------------
+monitoring.ui.container.elasticsearch.enabled: true
+monitoring.ui.container.logstash.enabled: true
+
+# X-Pack Monitoring
+xpack.monitoring.enabled: true
+xpack.monitoring.collection.enabled: true
+xpack.monitoring.collection.interval: 10000
+xpack.monitoring.min_interval_seconds: 10
+xpack.monitoring.elasticsearch.collection.enabled: true
+
+# Reporting
+xpack.reporting.enabled: true
+xpack.reporting.capture.maxAttempts: 3
+
+# Security
+xpack.security.enabled: true
+xpack.security.audit.enabled: true
+
+#-------------------------- Logging Configuration --------------------------
+logging.dest: stdout
+logging.quiet: false
+logging.verbose: false
+logging.json: true
+
+# Log Events Configuration
+logging.events:
+  ops: ["error", "warning"]
+  request: ["error", "warning", "info"]
+  response: ["error", "warning", "info"]
+  error: ["*"]
+
+# Log Rotation
+logging.rotate:
+  enabled: true
+  size: "100m"
+  interval: "24h"
+  keepFiles: 7
+
+#-------------------------- Telemetry Configuration --------------------------
+telemetry.enabled: false
+telemetry.allowChangingOptInStatus: false
+telemetry.optIn: false
+telemetry.sendUsageFrom: "none"
+
+#-------------------------- Performance Configuration --------------------------
+ops.interval: 5000
+cpu.cgroup.path.override: "/"
+cpuacct.cgroup.path.override: "/"
+memory.limit: "1GB"
+pid.file: "/var/run/kibana/kibana.pid"
