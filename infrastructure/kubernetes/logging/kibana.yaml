@@ -1,0 +1,187 @@
+# Kibana Kubernetes Configuration
+# Version: v1
+# Dependencies:
+# - k8s.io/api/apps/v1 v1
+# - k8s.io/api/core/v1 v1
+# - kibana:8.9.0
+
+---
+# ConfigMap for Kibana configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: knowledge-system
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0.0.0.0"
+    server.port: 5601
+    
+    # Elasticsearch connection settings
+    elasticsearch.hosts: ["http://elasticsearch:9200"]
+    elasticsearch.ssl.verificationMode: certificate
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.encryptedSavedObjects.encryptionKey: ${KIBANA_ENCRYPTION_KEY}
+    
+    # Monitoring settings
+    xpack.monitoring.enabled: true
+    xpack.monitoring.kibana.collection.enabled: true
+    xpack.monitoring.ui.container.elasticsearch.enabled: true
+    
+    # Performance settings
+    optimize.bundleFilter: "!tests"
+    optimize.watchPort: 5601
+    
+    # Logging settings
+    logging.appenders.file.type: file
+    logging.appenders.file.fileName: /var/log/kibana/kibana.log
+    logging.root.level: info
+
+---
+# Persistent Volume Claim for Kibana data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kibana-data
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: gp3-storage-class
+
+---
+# Deployment for Kibana
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: knowledge-system
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kibana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5601"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.9.0
+          ports:
+            - name: http
+              containerPort: 5601
+              protocol: TCP
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch:9200"
+            - name: KIBANA_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-secrets
+                  key: encryption-key
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: "200m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+              scheme: HTTP
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: kibana-config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
+            - name: kibana-data
+              mountPath: /usr/share/kibana/data
+            - name: kibana-logs
+              mountPath: /var/log/kibana
+      volumes:
+        - name: kibana-config
+          configMap:
+            name: kibana-config
+        - name: kibana-data
+          persistentVolumeClaim:
+            claimName: kibana-data
+        - name: kibana-logs
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - kibana
+                topologyKey: kubernetes.io/hostname
+
+---
+# Service for Kibana
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: knowledge-system
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5601"
+spec:
+  ports:
+    - name: http
+      port: 5601
+      targetPort: 5601
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kibana
+  type: ClusterIP
