@@ -1,0 +1,32 @@
+* @project-leads
+
+# Backend services and implementations
+/src/backend/* @backend-team
+
+# Frontend application
+/src/web/* @frontend-team
+
+# Test suites
+/src/test/* @qa-team
+
+# CI/CD and GitHub workflows
+/.github/workflows/* @devops-team
+
+# Infrastructure and deployment
+/infrastructure/* @devops-team
+
+# API Gateway service - requires backend and API expertise
+/src/backend/api-gateway/* @backend-team @api-specialists
+
+# Vector processing service - requires ML expertise
+/src/backend/vector-service/* @backend-team @ml-specialists
+
+# Knowledge graph service - requires graph DB expertise
+/src/backend/knowledge-organization/* @backend-team @graph-specialists
+
+# Protocol definitions
+*.proto @backend-team @api-specialists
+
+# Package dependencies
+package.json @frontend-team @backend-team
+Pipfile @backend-team
