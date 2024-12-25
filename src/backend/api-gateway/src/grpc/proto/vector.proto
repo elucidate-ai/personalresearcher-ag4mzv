@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package vector;
+
+option go_package = "./vector";
+option java_multiple_files = true;
+option java_package = "com.knowledgecurator.vector";
+
+// Import Google protobuf types
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/empty.proto";      // v3.0.0
+import "google/protobuf/wrappers.proto";   // v3.0.0
+
+// Request message for generating embeddings with enhanced metadata support
+message EmbeddingRequest {
+    // Unique identifier for the content
+    string content_id = 1;
+    
+    // Type of content (e.g., "text", "video", "audio")
+    string content_type = 2;
+    
+    // Raw content data to generate embedding for
+    bytes content_data = 3;
+    
+    // Additional metadata key-value pairs
+    map<string, string> metadata = 4;
+    
+    // Optional desired dimensions for the embedding vector
+    google.protobuf.UInt32Value desired_dimensions = 5;
+    
+    // Version of the embedding model to use
+    string model_version = 6;
+}
+
+// Response message for embedding generation with detailed vector information
+message EmbeddingResponse {
+    // Unique identifier for the generated embedding
+    string embedding_id = 1;
+    
+    // The actual embedding vector values
+    repeated float vector = 2;
+    
+    // Number of dimensions in the generated vector
+    uint32 dimensions = 3;
+    
+    // Timestamp when the embedding was created
+    google.protobuf.Timestamp created_at = 4;
+    
+    // Quality score of the generated embedding (0.0 to 1.0)
+    float quality_score = 5;
+    
+    // Identifier of the model used for generation
+    string model_used = 6;
+    
+    // Additional metadata about the processing
+    map<string, string> processing_metadata = 7;
+}
+
+// Request message for similarity search with advanced filtering
+message SearchRequest {
+    // Query vector to find similar vectors for
+    repeated float query_vector = 1;
+    
+    // Number of similar vectors to return
+    uint32 top_k = 2;
+    
+    // Minimum similarity threshold (0.0 to 1.0)
+    float similarity_threshold = 3;
+    
+    // Metadata filters for search refinement
+    map<string, string> filters = 4;
+    
+    // Namespace for the search operation
+    string namespace = 5;
+    
+    // Search strategy to use
+    SearchStrategy strategy = 6;
+    
+    // Metadata keys to include in results
+    repeated string include_metadata_keys = 7;
+}
+
+// Response message for similarity search with comprehensive results
+message SearchResponse {
+    // List of similar vectors found
+    repeated SimilarVector results = 1;
+    
+    // Total number of vectors found
+    uint32 total_found = 2;
+    
+    // Search execution time in milliseconds
+    float search_time_ms = 3;
+    
+    // Strategy used for the search
+    string search_strategy_used = 4;
+    
+    // Additional metadata about the search operation
+    map<string, string> search_metadata = 5;
+}
+
+// Message definition for similar vector results
+message SimilarVector {
+    // Unique identifier of the similar vector
+    string vector_id = 1;
+    
+    // The actual vector values
+    repeated float vector = 2;
+    
+    // Similarity score with query vector (0.0 to 1.0)
+    float similarity_score = 3;
+    
+    // Associated metadata
+    map<string, string> metadata = 4;
+    
+    // Creation timestamp
+    google.protobuf.Timestamp created_at = 5;
+    
+    // Last update timestamp
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+// Enum defining different search strategies
+enum SearchStrategy {
+    // Exact nearest neighbor search
+    EXACT = 0;
+    
+    // Approximate nearest neighbor search
+    APPROXIMATE = 1;
+    
+    // Hybrid search combining exact and approximate
+    HYBRID = 2;
+}
+
+// gRPC service definition for vector operations
+service VectorService {
+    // Generate embedding vector for given content
+    rpc GenerateEmbedding(EmbeddingRequest) returns (EmbeddingResponse) {}
+    
+    // Search for similar vectors
+    rpc SearchSimilar(SearchRequest) returns (SearchResponse) {}
+    
+    // Generate embeddings for multiple content items
+    rpc BatchGenerateEmbeddings(stream EmbeddingRequest) returns (stream EmbeddingResponse) {}
+}
